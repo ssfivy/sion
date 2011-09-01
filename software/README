@@ -1,0 +1,65 @@
+What is in these directories?
+
+./build
+Build output directory, all binaries will be placed here.
+
+./canlog
+sqlite3 database of CAN logs will be stored here.
+
+./ciel_player
+Plays old telemetry data, while providing an identical interface to scanalysis / strategy software
+
+./ciel_receiver
+Receiver program, used on the control car.
+Requires build-essentials on Ubuntu / Debian to compile.
+
+./ciel_seven
+Python scripts to interface with control car sensors; WIP / todo.
+
+./common
+Common files between ciel_receiver and sion_sender
+
+./docs
+Thesis writeups, documentations (ya right), user guides (I wish!), etc
+Not on open source.
+
+./linux
+./linux/install/
+Debian OS scripts, aka how to install OS in gumstix
+Requires u-boot to be installed, to perform mkfs. Also requires CodeSourcery G++ ARM Linux, for crosscompiling kernel.
+./linux/post-install
+Contains post install setup script and default config files.
+
+./sion_can
+CAN interface software for the LPC1768 microcontroller used in SION. requires ../arch/lpc1768env
+Need CodeSourcery G++ ARM EABI to compile, and properly setup openocd to program.
+
+./sion_sender
+Sender program, resides in SION within the solar car.
+Requires CodeSourcery G++ ARM Linux to compile, and a network connection to program (other methods might be possible but more painful).
+
+./utils
+Random miscellaneous programs and scripts.
+
+README
+this file
+
+Makefile
+Makes stuffs... several arguments:
+
+make sion_can
+make sion_can_program
+make sion_sender
+make sion_sender_deploy
+make ciel_receiver
+make all
+make clean
+
+Contact Information:
+
+UNSW Solar Racing Team
+www.sunswift.com
+
+Trustworthy Embedded Systems - NICTA
+ertos.nicta.com.au
+

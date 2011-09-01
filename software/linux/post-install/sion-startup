@@ -1,0 +1,38 @@
+#!/bin/sh
+#/etc/init.d/sion
+#starts sion with default args
+
+SIONROOT=/root
+SIONLOGS=canlog
+SENDER=sion_sender
+INPUTDEVICE=/dev/ttyO0
+SPACETHRESHOLD=500000
+
+case "$1" in
+	start)
+		echo "SION: Starting SION....."
+		source $SIONROOT/sion_sender/sion_config
+		cd $SIONROOT
+
+#		check free space & remove old logs if low
+		while [ `df | grep -E 'mmc' | awk '{ print $4 }'` -le $SPACETHRESHOLD ]; do
+			echo "Free space fallen below threshold, deleting oldest log file..."
+			rm -v `ls -1t $SIONROOT/$SIONLOGS | tail -1`
+		done
+
+#		start SION
+		./sion_sender/$SENDER $INPUTDEVICE &
+		cd /
+		;;
+	stop)
+		echo "SION: Stopping SION...."
+		killall $SENDER
+		;;
+	*)
+		echo "Usage: /etc/init/d/sion-startup {start|stop}"
+		exit 1
+		;;
+esac
+
+exit 0
+

@@ -1,0 +1,66 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <signal.h>
+
+#include "can.h"
+
+int fd;
+
+void
+init_can(void){
+	/* open the can device */
+	if ((fd=open("/dev/can0",O_RDWR)) < 0) {
+		perror("open");
+		printf("Error opening /dev/can0\n");
+		exit(1);	
+	}
+}
+
+int can_fd(){
+	return fd;
+}
+
+uint8_t
+can_get_msg(struct can_msg *msg){
+	struct can_msg readmsg;
+	int ret;
+	unsigned long i = 0;
+
+	ret=read(fd, &readmsg, sizeof(struct can_msg));
+
+	if(ret < 0) {
+	  perror("read");
+	  printf("Error reading message\n");
+	  return NO_MSG_ERR;
+	}else{
+	  msg->id = readmsg.id;
+	  for(i=0; i<CAN_MSG_LENGTH; i++)
+	    msg->data[i] = readmsg.data[i];
+	  msg->length = readmsg.length;
+	}
+	  
+	return NO_ERR;
+}
+
+uint8_t
+can_send_msg(struct can_msg *msg, uint8_t priority){
+	struct can_msg sendmsg={0,{0,},0};
+	int i, ret;
+
+	sendmsg.id = msg->id;
+	for(i=0; i<CAN_MSG_LENGTH; i++)
+		sendmsg.data[i] = msg->data[i];
+	sendmsg.length = msg->length;
+
+	ret = write(fd,&sendmsg,sizeof(struct can_msg));
+	if(ret<0)
+		return NO_MSG_ERR;
+
+	return NO_ERR;
+}

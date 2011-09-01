@@ -1,0 +1,10 @@
+#!/bin/bash
+#/etc/init.d/rtc
+#read rtc, sets system clock
+
+#read rtc
+/root/busybox-armv4tl hwclock -s
+
+#check
+date
+

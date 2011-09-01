@@ -1,0 +1,39 @@
+CC=gcc
+CFLAGS=-Wall -Werror -g
+OBJECTS=heap.o input.o microuptime.o output.o packet.o socket.o
+
+all: test sendlog
+
+heap.o: heap.c
+	$(CC) $(CFLAGS) -c -o heap.o heap.c
+
+input.o: input.c
+	$(CC) $(CFLAGS) -c -o input.o input.c
+
+microuptime.o: microuptime.c
+	$(CC) $(CFLAGS) -c -o microuptime.o microuptime.c
+
+output.o: output.c
+	$(CC) $(CFLAGS) -c -o output.o output.c
+
+packet.o: packet.c
+	$(CC) $(CFLAGS) -c -o packet.o packet.c
+
+socket.o: socket.c
+	$(CC) $(CFLAGS) -c -o socket.o socket.c
+
+test.o: test.c
+	$(CC) $(CFLAGS) -c -o test.o test.c
+
+test: $(OBJECTS) test.o
+	$(CC) $(CFLAGS) -o test $(OBJECTS) test.o
+
+sendlog.o: sendlog.c
+	$(CC) $(CFLAGS) -c -o sendlog.o sendlog.c
+
+sendlog: $(OBJECTS) sendlog.o
+	$(CC) $(CFLAGS) -o sendlog $(OBJECTS) sendlog.o
+
+clean:
+	rm -f $(OBJECTS)
+	rm -f test test.core

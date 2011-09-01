@@ -1,0 +1,11 @@
+#!/bin/sh
+# checks disk space, and deletest old canlogs until free space is above a minimum threshold
+# threshold is in kilobytes
+THRESHOLD = 500000
+CANLOGDIR = /home/root/canlog
+
+#while free space is less than threshold
+while [ `df | grep -E 'sda2' | awk '{ print $4 }'` -le THRESHOLD ]; do
+	echo "Free space fallen below threshold, deleting oldest log file..."
+	rm -v `ls -1t CANLOGDIR | tail -1`
+done
