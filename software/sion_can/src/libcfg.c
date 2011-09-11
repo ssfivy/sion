@@ -40,7 +40,7 @@
  */
 
 /* Includes ------------------------------------------------------------------- */
-#include "lpc17xx_libcfg_default.h"
+#include <project/libcfg.h>
 
 /* Public Functions ----------------------------------------------------------- */
 /** @addtogroup LIBCFG_DEFAULT_Public_Functions
@@ -63,7 +63,10 @@ void check_failed(uint8_t *file, uint32_t line)
 	 ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 
 	/* Infinite loop */
-	while(1);
+	while(1) {
+	
+
+	}
 }
 #endif /* DEBUG */
 

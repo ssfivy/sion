@@ -24,8 +24,8 @@ Conditionals, to prevent double definitions when linking
 
 #define YELLOWLEDPORT 0
 #define REDLEDPORT 2
-#define YELLOWLEDPIN (1<<11)
-#define REDLEDPIN (1<<13)
+#define YELLOWLEDPIN 11
+#define REDLEDPIN 13
 
 /*-------------------
   Pinsel configurations
@@ -35,8 +35,8 @@ __INLINE static void LED_Init_Pin(void) {
 	GPIO_SetDir( REDLEDPORT, REDLEDPIN, 1);
 	GPIO_SetDir( YELLOWLEDPORT, YELLOWLEDPIN, 1);
 	// clear led, since their default state is on
-	GPIO_SetValue(REDLEDPORT, REDLEDPIN);
-	GPIO_SetValue(YELLOWLEDPORT, YELLOWLEDPIN);
+	GPIO_SetValue(REDLEDPORT, REDLEDPIN, 1);
+	GPIO_SetValue(YELLOWLEDPORT, YELLOWLEDPIN, 1);
 }
 
 __INLINE static void CLKOUT_Init_Pin(void) {

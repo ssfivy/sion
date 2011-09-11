@@ -3,8 +3,8 @@ circbuffer.h
 circular buffer header file
 
 */
-#include "LPC17xx.h"
-#include "sion_can.h"
+#include <cmsis/LPC17xx.h>
+#include <project/sion_can.h>
 #include "scandal.h"
 
 

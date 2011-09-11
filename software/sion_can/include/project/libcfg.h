@@ -37,11 +37,11 @@
  * @{
  */
 
-#ifndef LPC17XX_LIBCFG_DEFAULT_H_
-#define LPC17XX_LIBCFG_DEFAULT_H_
+#ifndef LPC17XX_LIBCFG_H_
+#define LPC17XX_LIBCFG_H_
 
 /* Includes ------------------------------------------------------------------- */
-#include "lpc_types.h"
+#include <arch/types.h>
 
 
 /* Public Macros -------------------------------------------------------------- */

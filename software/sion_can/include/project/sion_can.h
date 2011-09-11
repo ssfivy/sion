@@ -29,7 +29,8 @@ LPC11C14 devices:
 not done yet.
 */
 //#define SCANDAL_CAN_SPEED DEFAULT_BAUD
-#define SCANDAL_CAN_SPEED 50000
+//#define SCANDAL_CAN_SPEED 50000
+#define SCANDAL_CAN_SPEED 125000
 
 
 /*

@@ -37,7 +37,7 @@
 
 
 #include <stdint.h>
-#include "LPC17xx.h"
+#include <cmsis/LPC17xx.h>
 
 
 /** @addtogroup LPC17xx_System
@@ -317,13 +317,13 @@
 #define USBCLKCFG_Val         0x00000000
 #define PCLKSEL0_Val          (0x00000000|(1<<6)|(1<<8)) /* divide CCLK by 4 for all peripherals except uart0 and uart1*/
 #define PCLKSEL1_Val          (0x00000000|(1<<10)) /* divide all by 4 except SSP0 */
-//#define PCONP_Val             0x042887DE /* default peripheral power */
+#define PCONP_Val             0x042887DE /* default peripheral power */
 
 /*
 Enabled peripheral power:
 UART0, UART1, SPI, CAN2, I2C1, SSP0, GPDMA
 */
-#define PCONP_Val             0x2028C118
+//#define PCONP_Val             0x2028C118
 #define CLKOUTCFG_Val         0x00000100 /* enable CLKOUT function, outputs CCLK.
                                             Remember to enable CLKOUT pin in pinsel register. */
 

@@ -1,0 +1,19 @@
+syntax: glob
+
+*Preview
+*htm
+*History
+.DS_Store
+*.o
+*.bin
+*.axf
+*.elf
+*.hex
+*.lst
+*.map
+*.sw*
+*.orig
+*/Project Outputs*
+*/Project Logs*
+cscope.files
+cscope.out

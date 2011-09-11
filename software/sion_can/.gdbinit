@@ -1,5 +1,5 @@
 #load elf file; contains mapping etc
-file sion_can.elf
+file build/sion_can.elf
 
 #connect to openocd daemon
 target remote localhost:3333

@@ -13,24 +13,24 @@
 */
 
 /* Standard CMSIS Definitions. */
-#include "LPC17xx.h"
-#include "lpc17xx_pinsel.h"
-#include "lpc17xx_gpio.h"
-#include "lpc17xx_uart.h"
-#include "lpc17xx_clkpwr.h"
-#include "lpc17xx_can.h"
-#include "debug_frmwrk.h"
-#include "lpc17xx_ssp.h"
-#include "lpc17xx_exti.h"
+#include <cmsis/LPC17xx.h>
+#include <arch/pinsel.h>
+#include <arch/gpio.h>
+#include <arch/uart.h>
+#include <arch/clkpwr.h>
+#include <arch/can.h>
+#include <arch/debug_frmwrk.h>
+#include <arch/ssp.h>
+#include <arch/exti.h>
 
 /* Local includes. */
-#include "sion_can.h"
-#include "hardware.h"
-#include "led.h"
-#include "printf.h" /* only provides sprintf_(), for debugging */
+#include "project/sion_can.h"
+#include "project/hardware.h"
+#include "project/led.h"
+#include "project/printf.h" /* only provides sprintf_(), for debugging */
 #include "scandal.h"
 #include "circbuffer.h"
-#include "tritium-can.h"
+#include "project/tritium-can.h"
 
 volatile uint32_t msTicks;                            /* counts 10ms timeTicks */
 /*----------------------------------------------------------------------------
@@ -121,7 +121,7 @@ void UART1_IRQHandler(void) {
 	//red_led(1);
 	uint8_t rx_count;
 	//check for correct header
-	if (UART_ReceiveByte((LPC_UART_TypeDef *) LPC_UART1) == CAN_MESSAGE_HEADER ) {
+	if (UART_ReceiveByte_17xx((LPC_UART_TypeDef *) LPC_UART1) == CAN_MESSAGE_HEADER ) {
 		//whee we have correct header, get the rest of data packet.
 		rx_count = UART_Receive((LPC_UART_TypeDef *) LPC_UART1, obuf, 13, BLOCKING);
 		if (13 == rx_count) { //check that we have full packet
@@ -156,11 +156,11 @@ This is to prevent brownouts from triggering shutdown.
 __INLINE static void check_shutdown(void) {
 	if(potential_shutdown_flag) {
 		if (msTicks > (when_was_shutdown_triggered + SHUTDOWN_CONFIRM_TIME)) { //if enough time passed 
-			if ( (GPIO_ReadValue(0) & (1<<21)) == 0) {  //if pin stays low
+			if ( (GPIO_ReadValue(0, 21)) == 0) {  //if pin stays low
 				/* shit, it is not a brownout, send the shutdown command! */
-				UART_SendByte((LPC_UART_TypeDef *) LPC_UART1, SHUTDOWN_SIGNAL);
+				UART_SendByte_17xx((LPC_UART_TypeDef *) LPC_UART1, SHUTDOWN_SIGNAL);
 			}
-			else if( (GPIO_ReadValue(0) & (1<<21)) != 0){ //if pin goes back up
+			else if( (GPIO_ReadValue(0, 21)) != 0){ //if pin goes back up
 				potential_shutdown_flag = 0;
 				red_led(0);
 			}
@@ -227,6 +227,7 @@ int main (void) {
 	dropped_packet_count = 0;
 	received_packet_count = 0;
 
+
 	/* Initialise all CAN stuff */
 	incount.start = 0;
 	incount.length = 0;
@@ -242,7 +243,7 @@ int main (void) {
 	UART_CFG_Type UARTConfigStruct; //declare config struct
 	UART_ConfigStructInit(&UARTConfigStruct); //set default configs
 	UARTConfigStruct.Baud_rate = 115200; //set baud rate
-	UART_Init((LPC_UART_TypeDef *) LPC_UART1, &UARTConfigStruct); // init registers
+	UART_Init_17xx((LPC_UART_TypeDef *) LPC_UART1, &UARTConfigStruct); // init registers
 	UART_FIFO_CFG_Type UARTFIFOConfigStruct;
 	UART_FIFOConfigStructInit(&UARTFIFOConfigStruct);
 	UART_FIFOConfig((LPC_UART_TypeDef *) LPC_UART1, &UARTFIFOConfigStruct);
@@ -262,6 +263,7 @@ int main (void) {
 	SSP_Cmd(LPC_SSP0, ENABLE);
 	*/
 
+
 	/* print init message */
 	uint8_t buf[80];
 	sprintf_(buf, "SION CAN Controller - LPC1768\n\r");
@@ -271,6 +273,10 @@ int main (void) {
 	UARTPuts(LPC_UART0, buf);
 	UARTPuts((LPC_UART_TypeDef *)LPC_UART1, buf);
 
+//	red_led(1);
+//	yellow_led(0);
+//	red_led(0);
+//	yellow_led(1);
 
 
 	/* HACK: do not send data to overo until trigger character is received. */
@@ -282,7 +288,7 @@ int main (void) {
 		Blink_LED_Periodically(LED_PERIOD);
 
 		/* and check incoming characters in UART for the trigger character...*/
-		if( UART_ReceiveByte((LPC_UART_TypeDef *) LPC_UART1) == START_SENDING_CAN_MESSAGES ) {
+		if( UART_ReceiveByte_17xx((LPC_UART_TypeDef *) LPC_UART1) == START_SENDING_CAN_MESSAGES ) {
 			count++;
 		}
 		else {
@@ -301,12 +307,11 @@ int main (void) {
 	NVIC_SetPriority(UART1_IRQn, ((0x02<<3)|(0x01)) );
 	NVIC_EnableIRQ(UART1_IRQn);
 
+
 	/* Init shutdown interrupt */
 	GPIO_IntCmd(0, (1 << 21), 1); //port 0, pin 21, falling edge
 	NVIC_SetPriority(EINT3_IRQn, ((0x01<<3)|(0x01)));
 	NVIC_EnableIRQ(EINT3_IRQn);
-
-	red_led(1);
 
 
 
@@ -324,9 +329,9 @@ int main (void) {
 			entrytostring(&entry, buf);
 
 			//send data to overo
-			UART_SendByte((LPC_UART_TypeDef *) LPC_UART1, CAN_MESSAGE_HEADER);
-			UART_SendByte((LPC_UART_TypeDef *) LPC_UART1, '\n');
-			UART_SendByte((LPC_UART_TypeDef *) LPC_UART1, '\r');
+			UART_SendByte_17xx((LPC_UART_TypeDef *) LPC_UART1, CAN_MESSAGE_HEADER);
+			UART_SendByte_17xx((LPC_UART_TypeDef *) LPC_UART1, '\n');
+			UART_SendByte_17xx((LPC_UART_TypeDef *) LPC_UART1, '\r');
 			UART_Send((LPC_UART_TypeDef *) LPC_UART1, buf, 13, BLOCKING);
 		
 			//print debug

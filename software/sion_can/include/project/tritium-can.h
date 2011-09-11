@@ -16,7 +16,7 @@
 #define __TRITIUM_DEFINED__
 
 #include "scandal.h" /* scandal.h from SION. */
-#include "lpc17xx_can.h"
+#include "arch/can.h"
 //#include "scandal_timestamp.h" //also from SION
 
 //#define __INTEGRATE_SCANDAL__

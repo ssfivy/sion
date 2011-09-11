@@ -44,9 +44,9 @@ Don't need usart library, cant be arsed merging cmsis with this one.
 #include <stdarg.h>
 //#include <stdlib.h>
 
-#include "printf.h"
+#include "project/printf.h"
 //#include "usart.h"
-#include "itoa.h"
+#include "project/itoa.h"
 
 /*
 +=============================================================================+
