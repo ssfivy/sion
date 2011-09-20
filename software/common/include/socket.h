@@ -20,9 +20,12 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <fcntl.h>
 
 #include <stdio.h>
 
+//magic number form the PLEB, works, so I'm using it.
+#define SOCKET_BUFFER_SIZE 1500
 
 int socket_init(int *sockfd, struct addrinfo **remoteinfo,
 				char *local_host, char* local_port,

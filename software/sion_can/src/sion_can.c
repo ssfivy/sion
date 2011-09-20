@@ -23,6 +23,9 @@
 #include <arch/ssp.h>
 #include <arch/exti.h>
 
+/*Me playing with stuff*/
+#include <arch/timer.h>
+
 /* Local includes. */
 #include "project/sion_can.h"
 #include "project/hardware.h"
@@ -93,25 +96,25 @@ void CAN_IRQHandler(void) {
 
 		/*
 		if this packet doesnt have what we want (eg, we dont want random DC voltage)
-		then sc_pkts_count will be 0 and the following will be skipped.
+		then sc_pkts_count will be 0 and the following for loopwill be skipped.
 		*/
 
 		//disable other things that may use insert_packet on the output message,
 		//then inject the packets
-		NVIC_DisableIRQ(UART1_IRQn); //untested
-		NVIC_DisableIRQ(CAN_IRQn); //untested
+		NVIC_DisableIRQ(UART1_IRQn);
+		NVIC_DisableIRQ(CAN_IRQn);
 
 		for (l=0;l<sc_pkts_count;l++) {
 			//insert packet(s) to output buffer, where it will be re-broadcasted to the
 			//CAN bus and also put back into the input queue. This is for driver display etc.
-		//UARTPuts(LPC_UART0, "Got Tritium packet!!!\n\r");
+			//UARTPuts(LPC_UART0, "Got Tritium packet!!!\n\r");
 			
-			//insert_packet(&sc_pkts[l], inbuf, &incount, CAN_IN_BUFFER_SIZE); //working line of code
-			insert_packet(&sc_pkts[l], outbuf, &outcount, CAN_OUT_BUFFER_SIZE); //untested
+			//insert_packet(&sc_pkts[l], inbuf, &incount, CAN_IN_BUFFER_SIZE); //old test. works.
+			insert_packet(&sc_pkts[l], outbuf, &outcount, CAN_OUT_BUFFER_SIZE); //also works.
 		}
 		//turn interrupts back on
-		NVIC_EnableIRQ(UART1_IRQn); //untesued
-		NVIC_EnableIRQ(CAN_IRQn); //untested
+		NVIC_EnableIRQ(UART1_IRQn);
+		NVIC_EnableIRQ(CAN_IRQn);
 	}
 
 }
@@ -227,6 +230,15 @@ int main (void) {
 	dropped_packet_count = 0;
 	received_packet_count = 0;
 
+	/*Timer. Not used. Was playing with it. Works, I think.
+	TIM_TIMERCFG_Type TIM_ConfigStruct;
+	TIM_ConfigStruct.PrescaleOption = TIM_PRESCALE_TICKVAL;
+	TIM_ConfigStruct.PrescaleValue = 12000000;
+	TIM_Init(LPC_TIM0, TIM_TIMER_MODE, &TIM_ConfigStruct);
+
+	TIM_ResetCounter(LPC_TIM0);
+	TIM_Cmd(LPC_TIM0, ENABLE);
+	*/
 
 	/* Initialise all CAN stuff */
 	incount.start = 0;
@@ -273,12 +285,6 @@ int main (void) {
 	UARTPuts(LPC_UART0, buf);
 	UARTPuts((LPC_UART_TypeDef *)LPC_UART1, buf);
 
-//	red_led(1);
-//	yellow_led(0);
-//	red_led(0);
-//	yellow_led(1);
-
-
 	/* HACK: do not send data to overo until trigger character is received. */
 	/* Hack since this is one-off, it should be hardware triggered so it 
 	   can stop sending when overo is rebooted */
@@ -317,7 +323,7 @@ int main (void) {
 
 	while(1) {
 		Blink_LED_Periodically(LED_PERIOD);
-		Broadcast_Status_Periodically(BROADCAST_PERIOD);
+		//Broadcast_Status_Periodically(BROADCAST_PERIOD);
 
 		//if possibility of shutdown exists, check state of pin continously
 		check_shutdown();
@@ -335,22 +341,15 @@ int main (void) {
 			UART_Send((LPC_UART_TypeDef *) LPC_UART1, buf, 13, BLOCKING);
 		
 			//print debug
+			//do not put too much here, as you'll spend too much time writing to debug UART
+			//and not enough time writing to overo UART.
+			//also this should use nonblocking UART
+
 			#define PRINT_DEBUG
+			#ifdef PRINT_DEBUG
 			//UARTPutDec32(LPC_UART0, (uint32_t) n);
 			//UARTPuts(LPC_UART0, " <- Dropped packet count.\n\r");
-			#ifdef PRINT_DEBUG
-			UARTPutDec(LPC_UART0, entry.priority);
-			UARTPutChar(LPC_UART0, '\t');
-			UARTPutDec(LPC_UART0, entry.message_type);
-			UARTPutChar(LPC_UART0, '\t');
-			UARTPutDec(LPC_UART0, entry.source_address);
-			UARTPutChar(LPC_UART0, '\t');
-			UARTPutDec16(LPC_UART0, entry.specifics);
-			UARTPutChar(LPC_UART0, '\t');
-			sprintf_(buf, "%d", entry.value);
-			UARTPuts(LPC_UART0, buf);
-			UARTPutChar(LPC_UART0, '\t');
-			UARTPutChar(LPC_UART0, '\t');
+
 			UARTPutDec32(LPC_UART0, (uint32_t) (entry.scandal_timestamp & 0xFFFFFFFF));
 			UARTPutChar(LPC_UART0, '\n');
 			UARTPutChar(LPC_UART0, '\r');

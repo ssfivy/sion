@@ -24,10 +24,9 @@ Irving Tjiptowarsono 2011
 #include "socket.h"
 
 #define MAX_LINE_LENGTH 50
-//#define STREAM /* uncomment if you want slow log reading.*/
 
 /*
-Very very very hacky way of handling signal.
+Very hacky way of handling signal.
 Please don't kill me.
 
 Also, sqlite connection handles aren't supposed to be moved between threads;
@@ -37,6 +36,7 @@ Probably also because there's only one transfer, then connection is closed.
 */
 sqlite3 *db, *dbsync;
 
+/* Exits due to signal */
 void exit_cleanly(int signum) {
 	printf("SION: Receiving signal %d, exiting...\n", signum);
 	shutdown_sqlite3(db);
@@ -45,11 +45,14 @@ void exit_cleanly(int signum) {
 }
 
 /* Shutdown code - identical to signal handler except it also halts the system */
+/* Do not use if supercap backup time < time needed to halt*/
 void shutdown_cleanly(void) {
 	printf("SION: Power loss! Shutting down system!\n");
 	shutdown_sqlite3(db);
 	sqlite3_close(dbsync);
-//	system("halt &"); //halt the system! //do not use if supercap backup time < time needed to halt
+
+	//halt the system! 
+	system("halt &"); 
 	exit(1);
 }
 
@@ -68,6 +71,7 @@ void * sync_thread (void) {
 	uint8_t rstring[SCANDALLONGSTRINGSIZE];
 	
 	while(1) {
+		//FIXME: Need select due to nonblocking I/O
 		socket_recv(&sockfd_sync, cstring, CONTROLSTRINGSIZE);
 		stringtocontrol(cstring, &ctrl_pkt);
 		if (ctrl_pkt.type == CAN_PACKET_RETRANSMISSION_REQUEST) {
@@ -95,6 +99,7 @@ void * output_thread (void) {
 
 	printf("SION: Done initialising output thread, entering main loop....\n");
 	while (1) {
+		//HACK: Need busy waiting or select() since this socket is nonblocking.
 		socket_recv(&sockfd_sender, ostring, SCANDALLONGSTRINGSIZE);
 		longstringtoentry(ostring, &oentry);
 		//printf_sion_entry(&oentry);
@@ -113,6 +118,7 @@ int main (int argc, char *argv[]) {
 	/* checking for arguments */
 	if (argc != 2) {
 		printf("Usage: sion_sender <source> \n");
+		printf("Ex: sion_sender /dev/ttyO0 \n");
 		exit(1);
 	}
 	printf("SION: Starting sion_sender....\n");
@@ -124,13 +130,9 @@ int main (int argc, char *argv[]) {
 
 	/* Open / set up sqlite db */
 	char dbfilename[MAX_LINE_LENGTH];
-//	makedbfile(dbfilename, ACCURACY_DAY);
-        strcpy(dbfilename, "../canlog/scandal.sqlite3"); //FIXME: Constant filename
-        FILE *textlog = fopen("../canlog/scandal.log", "a");
-
-
-
-/*
+	makedbfile(dbfilename, ACCURACY_DAY);
+//        strcpy(dbfilename, "../canlog/scandal.sqlite3");
+//        FILE *textlog = fopen("../canlog/scandal.log", "a");
 	if (checkdbfile(dbfilename)){ //if database exists, do not re-create tables
 		printf("SION: opening previous database: %s\n", dbfilename);
 		init_sqlite3(&db, dbfilename, OLDDB); //for writing
@@ -141,47 +143,46 @@ int main (int argc, char *argv[]) {
 		init_sqlite3(&db, dbfilename, NEWDB); //for writing
 		init_sqlite3(&dbsync, dbfilename, OLDDB);//for sync thread (read only)
 	}
-	*/
+	
 
 	/* Networking stuff*/
 	printf("SION: Setting up networks...\n");
 	socket_init(&sockfd_sender, &remoteinfo,
-				SIONOUTHOST, SIONOUTPORT, CIELIN_SION_HOST, CIELIN_SION_PORT) ;
+		SIONOUTHOST, SIONOUTPORT, CIELIN_SION_HOST, CIELIN_SION_PORT) ;
 	socket_init(&sockfd_sync, &syncinfo,
-				SIONIN_SYNC_HOST, SIONIN_SYNC_PORT, CIELOUT_SYNC_HOST, CIELOUT_SYNC_PORT) ;
+		SIONIN_SYNC_HOST, SIONIN_SYNC_PORT, CIELOUT_SYNC_HOST, CIELOUT_SYNC_PORT) ;
 
 	/* threading */
 	printf("SION: Setting up threads...\n");
 	pthread_t receiver_thread, retx_thread;
 	int rc;
-	rc = pthread_create(&receiver_thread, NULL, output_thread, NULL);
+	//FIXME: DISABLED due to noblocking socket
+	/*rc = pthread_create(&receiver_thread, NULL, output_thread, NULL);
 	if (rc) {
 		printf("ERROR; return code from pthread_create() is %d\n", rc);
 		exit(-1);
 	}
+	
  	rc = pthread_create(&retx_thread, NULL, sync_thread, NULL);
 	if (rc) {
 		printf("ERROR; return code from pthread_create() is %d\n", rc);
 		exit(-1);
 	}
-
+	*/
 
 	/* can stuff */
 	can_pkt pkt;
 	sion_entry entry;
 	uint8_t string[SCANDALLONGSTRINGSIZE];
-
 	uint32_t pkt_id_new;
 	pkt_id_new = get_largest_pkt_id(db);
 
-	can_interface_ready = init_source(argv[1]); //init this last, since it triggers the lpc1768 to start sending data
+	//init this last, since it triggers the lpc1768 to start sending data
+	can_interface_ready = init_source(argv[1]); 
+
 	/* main sender loop */
 	printf("SION: Done initialisation, entering main loop....\n");
 	while (1) {
-		
-		#ifdef STREAM
-			usleep(20000);
-		#endif
 		
 		if (get_can_pkt(&pkt) == -20 ) {
 			//if it's -20, that means we received shutdown packet
@@ -192,21 +193,16 @@ int main (int argc, char *argv[]) {
 		entry.pkt_id = pkt_id_new;
 		entrytolongstring(&entry, string);
 		socket_send(&sockfd_sender, string, SCANDALLONGSTRINGSIZE, remoteinfo);
-                fprintf(textlog,"%d\t%d\t%d\t%d\t%d\t%llu\t%llu\t%u\n\r", 
-                entry.priority, 
-                entry.message_type, 
-                entry.source_address, 
-                entry.specifics, 
-                entry.value,
-                entry.scandal_timestamp,
-                entry.ciel_timestamp,
-                entry.pkt_id);
 
 		//queue_can_packet(db, &entry, SQLITE_BLOCKLEN);
 		
-		/* ahh, CANUSB appearance. Soothing.*/
+		/* debug printout on terminal */
+		/* disable by default, since it can pollute login tty*/
+		//#define SION_DEBUG
 		#ifdef SION_DEBUG
-		printf_sion_entry(&entry);
+		//this will cause lag, do not use unless under low bandwith.
+		//printf_sion_entry(&entry); 
+		printf("%llu\t%u\n\r", entry.scandal_timestamp, entry.pkt_id);
 		#endif
 	}
 	

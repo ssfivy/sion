@@ -58,7 +58,19 @@ int socket_init(int *sockfd, struct addrinfo **remoteinfo,
         return 2;
     }
 
-    freeaddrinfo(localinfo);
+	//reduce socket buffer size - essential to reduce delay between OMAP and control
+	int buf_size = SOCKET_BUFFER_SIZE;
+	setsockopt(*sockfd, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(int));
+	setsockopt(*sockfd, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(int));
+
+	//make it non-blocking - essential to make the loop become fast enough to handle data.
+	//else you can get something like 50seconds(!!) of lag
+	//took me months to found this, fffuuuuuuu
+	int socket_flags;
+	socket_flags = fcntl(*sockfd, F_GETFL) | O_NONBLOCK;
+	fcntl(*sockfd, F_SETFL, socket_flags);
+
+	freeaddrinfo(localinfo);
 	
 	return 0;
 }

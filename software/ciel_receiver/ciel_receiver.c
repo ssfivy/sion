@@ -36,11 +36,10 @@ volatile sig_atomic_t loop = 1;
 
 
 /*
-Very very very hacky way of handling signal.
+Very hacky way of handling signal.
 (according to the GNU guide anyway; 
 I'm supposed to set a flag, return to main loop and execute
 whatever I need.)
-If you're an OS person please don't kill me.
 */
 
 sqlite3 *db, *dbsync;
@@ -66,6 +65,7 @@ void * output_thread (void) {
 	uint8_t ostring[SCANDALLONGSTRINGSIZE];
 	printf("CIEL: Done initialising output thread, entering main loop...\n");
 	while(1) {
+	//TODO: poll() or select(), since this is nonblocking socket
 	socket_recv(&sockfd_telemout, ostring, SCANDALLONGSTRINGSIZE);
 	socket_send(&sockfd_sion, ostring, SCANDALLONGSTRINGSIZE, sioninfo);
 	}
@@ -156,10 +156,10 @@ int main (void) {
 	signal(SIGINT, shutdown_cleanly);
 	
 	/* set up sqlite db */
-	//makedbfile(dbfilename, ACCURACY_DAY);
-	strcpy(dbfilename, "../canlog/scandal.sqlite3"); //FIXME: Constant filename
-	FILE *textlog = fopen("../canlog/scandal.log", "a");
-	FILE *delaylog = fopen("../canlog/delay.log", "a");
+	makedbfile(dbfilename, ACCURACY_DAY);
+	//strcpy(dbfilename, "../canlog/scandal.sqlite3"); //FIXME: Constant filename
+	//FILE *textlog = fopen("../canlog/scandal.log", "a");
+	//FILE *delaylog = fopen("../canlog/delay.log", "a");
 
 
 	if (checkdbfile(dbfilename)){
@@ -196,8 +196,8 @@ int main (void) {
 	socket_init(&sockfd_telemout, &telemoutinfo,
 				CIELOUT_OPEN_HOST, CIELOUT_OPEN_PORT, TELEM_TARGET_HOST , TELEM_TARGET_PORT) ;
 	//socket for sending these to something else.
-	socket_init(&sockfd_telemout2, &telemoutinfo2,
-				CIELOUT_OPEN_HOST2, CIELOUT_OPEN_PORT2, TELEM_TARGET_HOST2 , TELEM_TARGET_PORT2) ;
+	//socket_init(&sockfd_telemout2, &telemoutinfo2,
+	//			CIELOUT_OPEN_HOST2, CIELOUT_OPEN_PORT2, TELEM_TARGET_HOST2 , TELEM_TARGET_PORT2) ;
 
 
 	//more select() stuff
@@ -232,19 +232,20 @@ int main (void) {
 		exit(-1);
 	}
 
-	//FIXME
+	//FIXME 
+	/*
 	int date_is_set=0;
 	int number_of_seconds_since_epoch = 0;
 	int delay = 0;
+	*/
 
 	printf("CIEL: Entering main receiver loop..\n");
-
 	while ( loop ) {
 		read_fds = master;
-        if (select(fdmax, &read_fds, NULL, NULL, NULL) == -1) {
-            perror("select");
-            exit(4);
-        }
+		if (select(fdmax, &read_fds, NULL, NULL, NULL) == -1) {
+			perror("select");
+			exit(4);
+		}
 
 		for(fdcount = 0; fdcount <=fdmax; fdcount++ ) { //for all the socket descriptors....
 			if(FD_ISSET(fdcount, &read_fds)) {
@@ -268,51 +269,50 @@ int main (void) {
 
 		//TODO: Fix the Scandal Channel messages etc timestamps to full 64-bit.
 
-
-
-
-		socket_send(&sockfd_telemout, string, SCANDALLONGSTRINGSIZE, telemoutinfo);
-		socket_send(&sockfd_telemout2, string, SCANDALLONGSTRINGSIZE, telemoutinfo2);
-		//printf("Sent packet!\n");
+		//socket_send(&sockfd_telemout, string, SCANDALLONGSTRINGSIZE, telemoutinfo); //to scanalysis
+		//socket_send(&sockfd_telemout2, string, SCANDALLONGSTRINGSIZE, telemoutinfo2); //to sunswift live
 		
 		longstringtoentry(string, &entry);
-		entry.ciel_timestamp = (((uint64_t) tstamp.tv_sec) * 1000)  + ( (uint64_t) lrintf( ((float) tstamp.tv_usec) / 1000 ) ); 
+		entry.ciel_timestamp = (((uint64_t) tstamp.tv_sec) * 1000) +
+			( (uint64_t) lrintf( ((float) tstamp.tv_usec) / 1000 ) ); 
 		//FIXME: delay log
-		if(entry.source_address == 30 && entry.specifics == 6) {
-		date_is_set = entry.value;
+		//if(entry.source_address == 30 && entry.specifics == 6) {
+		//date_is_set = entry.value;
 		//printf("Today is %d days since epoch.\n\r", date_is_set);
-		}	
+		//}	
 
 		//FIXME: Delay log.
-		if (date_is_set && entry.source_address == 30 && entry.specifics == 5 || 1) {
-		number_of_seconds_since_epoch = date_is_set * 24 * 3600;
+		//if (date_is_set && entry.source_address == 30 && entry.specifics == 5 ) {
+		//number_of_seconds_since_epoch = date_is_set * 24 * 3600;
 		// Calculate # of seconds today
-		delay = tstamp.tv_sec -  (entry.value / 1000 + number_of_seconds_since_epoch);
-		delay = 1337;
-		printf("Delay is %d seconds\n\r", delay);
-		fprintf(delaylog, "%d %d\n\r", delay, tstamp.tv_sec);
-		sync();
-		}
+		//delay = tstamp.tv_sec -  (entry.value / 1000 + number_of_seconds_since_epoch);
+		//printf("Delay is %d seconds\n\r", delay);
+		//fprintf(delaylog, "%llu %ld\n\r", entry.scandal_timestamp, tstamp.tv_sec);
+		//sync();
+		//}
 
-		//FIXME: plaintext log
+		//FIXME: plaintext log, not needed
+		/*
 		fprintf(textlog,"%d\t%d\t%d\t%d\t%d\t%llu\t%llu\t%u\n\r", 
-                entry.priority, 
-                entry.message_type, 
-                entry.source_address, 
-                entry.specifics, 
-                entry.value,
-                entry.scandal_timestamp,
-                entry.ciel_timestamp,
-                entry.pkt_id);
+		entry.priority, 
+		entry.message_type, 
+		entry.source_address, 
+		entry.specifics, 
+		entry.value,
+		entry.scandal_timestamp,
+		entry.ciel_timestamp,
+		entry.pkt_id);
+		*/
 
+		//queue_can_packet(db, &entry, SQLITE_BLOCKLEN); //duplicate packets are ignored by sqlite
 
-
-
-		queue_can_packet(db, &entry, SQLITE_BLOCKLEN); //duplicate packets are ignored by sqlite
-		/* ahh, CANUSB appearance. Soothing.*/
-		//#ifdef SION_DEBUG
-			printf_sion_entry(&entry);// mainly used to indicate that things are working... should use something neater.
-		//#endif
+		/* Debug function. Do not print too much UART or you'll slow everything down. */
+		#define SION_DEBUG
+		#ifdef SION_DEBUG
+			//printf_sion_entry(&entry);
+			printf("%llu\t%ld\t %ld\n\r", entry.scandal_timestamp,
+			tstamp.tv_sec, (tstamp.tv_sec - (int32_t)entry.scandal_timestamp)); 
+		#endif
 	}
 	
 	shutdown_sqlite3(db);

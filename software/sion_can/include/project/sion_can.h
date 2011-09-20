@@ -29,8 +29,8 @@ LPC11C14 devices:
 not done yet.
 */
 //#define SCANDAL_CAN_SPEED DEFAULT_BAUD
-//#define SCANDAL_CAN_SPEED 50000
-#define SCANDAL_CAN_SPEED 125000
+#define SCANDAL_CAN_SPEED 50000
+//#define SCANDAL_CAN_SPEED 125000
 
 
 /*
@@ -68,7 +68,7 @@ Input buffer should be pretty large, while output can be smaller.
 These values should be fine. Too low and you might overwrite stuff, 
 too high and you will be out of memory (though compiler will warn you)
 */
-#define CAN_IN_BUFFER_SIZE 1700
+#define CAN_IN_BUFFER_SIZE 1300
 #define CAN_OUT_BUFFER_SIZE 30
 
 

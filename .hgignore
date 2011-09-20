@@ -1,6 +1,7 @@
 syntax: glob
 
-*Preview
+*.SchDocPreview
+*.PcbDocPreview
 *htm
 *History
 .DS_Store

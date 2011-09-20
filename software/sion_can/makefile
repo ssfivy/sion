@@ -30,7 +30,7 @@ OBJECTS += can.o uart.o gpio.o
 #flash.o timer.o
 # Add other objects here or in the architecture specific makefile
 OBJECTS += libcfg.o pinsel.o debug_frmwrk.o led.o 
-OBJECTS += printf.o itoa.o circbuffer.o exti.o
+OBJECTS += printf.o itoa.o circbuffer.o exti.o timer.o
 
 CFLAGS  = -I$(SCANDAL)/include # for scandal includes
 CFLAGS += -I$(ARCH)/include # for arch drivers
@@ -40,7 +40,7 @@ CFLAGS += -I$(COMMON)/include #SION-specific includes
 # We should really try to minimise all warnings for error free code. Wall is needed for this.
 CFLAGS += -Wall -Werror
 # Optimise for size. Can also optimise for performance with 1, 2 or 3
-CFLAGS += -O0
+CFLAGS += -Os
 #debug flag
 CFLAGS += -g
 CFLAGS += -D$(CHIP)
