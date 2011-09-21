@@ -128,3 +128,18 @@ int queue_socket_send(int *sockfd, void *data, int msglength, struct addrinfo *r
 
 	return numbytes;
 }
+
+int socket_readable(int *sockfd){
+	struct pollfd status;
+
+	status.fd = *sockfd;
+	status.events = POLLIN;
+	status.revents = 0;
+
+	poll(&status, 1, 0);
+
+	if(status.revents & POLLIN)
+		return 0;	/* data available */
+	else
+		return -1;	/* no data available */
+}

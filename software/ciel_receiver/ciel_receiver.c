@@ -65,9 +65,10 @@ void * output_thread (void) {
 	uint8_t ostring[SCANDALLONGSTRINGSIZE];
 	printf("CIEL: Done initialising output thread, entering main loop...\n");
 	while(1) {
-	//TODO: poll() or select(), since this is nonblocking socket
-	socket_recv(&sockfd_telemout, ostring, SCANDALLONGSTRINGSIZE);
-	socket_send(&sockfd_sion, ostring, SCANDALLONGSTRINGSIZE, sioninfo);
+		if (socket_readable(&sockfd_telemout) == 0) {//if there is data...
+			socket_recv(&sockfd_telemout, ostring, SCANDALLONGSTRINGSIZE); //grab it
+			socket_send(&sockfd_sion, ostring, SCANDALLONGSTRINGSIZE, sioninfo); //and pass it to SION
+		}
 	}
 	pthread_exit(NULL);
 }
@@ -136,12 +137,6 @@ feel free to contact me or write your own implementation - irving
 	pthread_exit(NULL);
 }
 
-/* Accept data from control car sensors, WIP */
-void * seven_thread (void) {
-	printf("CIEL: Seven thread chreated....\n");
-	pthread_exit(NULL);
-
-}
 
 /* main loop */
 int main (void) {
@@ -157,9 +152,7 @@ int main (void) {
 	
 	/* set up sqlite db */
 	makedbfile(dbfilename, ACCURACY_DAY);
-	//strcpy(dbfilename, "../canlog/scandal.sqlite3"); //FIXME: Constant filename
 	//FILE *textlog = fopen("../canlog/scandal.log", "a");
-	//FILE *delaylog = fopen("../canlog/delay.log", "a");
 
 
 	if (checkdbfile(dbfilename)){
@@ -216,21 +209,15 @@ int main (void) {
 
 	/* Set up threads */
 
-	/* FIXME: Disabled due to debugging
 	printf("CIEL: Setting up threads...\n ");
-	pthread_t out_thread, sevenin_thread, sync_thread_handler;
+	pthread_t out_thread,  sync_thread_handler;
 	int rc;
 	rc = pthread_create(&out_thread, NULL, output_thread, NULL);
 	if (rc) {
 		printf("CIEL: ERROR: Return code from pthread_create for output thread is %d\n", rc);
 		exit(-1);
 	}
-	rc = pthread_create(&sevenin_thread, NULL, seven_thread, NULL);
-	if (rc) {
-		printf("CIEL: ERROR: Return code from pthread_create for seven thread is %d\n", rc);
-		exit(-1);
-	}
-	
+	/*
 	rc = pthread_create(&sync_thread_handler, NULL, sync_thread, NULL);
 	if (rc) {
 		printf("CIEL: ERROR: Return code from pthread_create for sync thread is %d\n", rc);

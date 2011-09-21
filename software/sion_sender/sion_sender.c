@@ -95,18 +95,18 @@ void * output_thread (void) {
 
 	printf("SION: Output thread: Waiting until CAN interface is ready...\n");
 	while (can_interface_ready != 0){
-		usleep(10000);
+		usleep(20000);
 	}
 
 	printf("SION: Done initialising output thread, entering main loop....\n");
 	while (1) {
-		//HACK: Need busy waiting or select() since this socket is nonblocking.
-		socket_recv(&sockfd_sender, ostring, SCANDALLONGSTRINGSIZE);
-		longstringtoentry(ostring, &oentry);
-		//printf_sion_entry(&oentry);
-		//notice there's no logging here at the moment?
-		entrytocan(&oentry, &opkt);
-		send_can_pkt(&opkt);
+		if (socket_readable(&sockfd_sender) == 0){ //if there's data in the socket...
+			socket_recv(&sockfd_sender, ostring, SCANDALLONGSTRINGSIZE);
+			longstringtoentry(ostring, &oentry);
+			//printf_sion_entry(&oentry);
+			entrytocan(&oentry, &opkt);
+			send_can_pkt(&opkt);
+		}
 	}
 	pthread_exit(NULL);
 }
@@ -122,7 +122,6 @@ int main (int argc, char *argv[]) {
 		printf("Ex: sion_sender /dev/ttyO0 \n");
 		exit(1);
 	}
-	printf("SION: Starting sion_sender....\n");
 	
 	/* Signal handling */
 	printf("SION: Setting up signals...\n");
@@ -132,8 +131,6 @@ int main (int argc, char *argv[]) {
 	/* Open / set up sqlite db */
 	char dbfilename[MAX_LINE_LENGTH];
 	makedbfile(dbfilename, ACCURACY_DAY);
-//        strcpy(dbfilename, "../canlog/scandal.sqlite3");
-//        FILE *textlog = fopen("../canlog/scandal.log", "a");
 	if (checkdbfile(dbfilename)){ //if database exists, do not re-create tables
 		printf("SION: opening previous database: %s\n", dbfilename);
 		init_sqlite3(&db, dbfilename, OLDDB); //for writing
@@ -160,12 +157,12 @@ int main (int argc, char *argv[]) {
 	pthread_t receiver_thread, retx_thread;
 	int rc;
 	//FIXME: DISABLED due to noblocking socket
-	/*rc = pthread_create(&receiver_thread, NULL, output_thread, NULL);
+	rc = pthread_create(&receiver_thread, NULL, output_thread, NULL);
 	if (rc) {
 		printf("ERROR; return code from pthread_create() is %d\n", rc);
 		exit(-1);
 	}
-	
+	/*
  	rc = pthread_create(&retx_thread, NULL, sync_thread, NULL);
 	if (rc) {
 		printf("ERROR; return code from pthread_create() is %d\n", rc);
@@ -180,7 +177,7 @@ int main (int argc, char *argv[]) {
 	uint32_t pkt_id_new;
 	pkt_id_new = get_largest_pkt_id(db);
 
-	//init this last, since it triggers the lpc1768 to start sending data
+	/*init this last, since it triggers the lpc1768 to start sending data*/
 	can_interface_ready = init_source(argv[1]); 
 
 	/* main sender loop */
@@ -188,22 +185,24 @@ int main (int argc, char *argv[]) {
 	while (1) {
 		
 		if (get_can_pkt(&pkt) == -20 ) {
-			//if it's -20, that means we received shutdown packet
+			/*if true, that means we received shutdown packet. Sync and exit. */
 			shutdown_cleanly();
 		}
+
+		/* Convert to proper format and add packet ID */
 		cantoentry(&pkt, &entry);
 		pkt_id_new++;
 		entry.pkt_id = pkt_id_new;
 		entrytolongstring(&entry, string);
 
-		//numbytes = socket_send(&sockfd_sender, string, SCANDALLONGSTRINGSIZE, remoteinfo);
+		/* Queue data to wifi */
 		numbytes = queue_socket_send(&sockfd_sender, string, SCANDALLONGSTRINGSIZE, remoteinfo,
 			 sendqueue, SOCKET_BLOCK_LENGTH);
 
+		/* Queue data to SQLite */
 		queue_can_packet(db, &entry, SQLITE_BLOCKLEN);
 		
-		/* debug printout on terminal */
-		/* disable by default, since it can pollute login tty*/
+		/* debug printout on terminal. disable by default, since it can pollute login tty*/
 		#define SION_DEBUG
 		#ifdef SION_DEBUG
 		//this will cause lag, do not use unless under low bandwith.

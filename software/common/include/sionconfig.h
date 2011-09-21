@@ -5,21 +5,28 @@ and paths and everything else, really
 */
 #ifndef SIONCONFIG
 #define SIONCONFIG
-//#define SION_DEBUG /* uncomment if you want debug printfs*/
 
-/* Sion -> Ciel telemetry */
+/* 
+Sion -> Ciel telemetry 
+Sion <- Ciel telemetry (eg tracker reset command)
+*/
 #define SIONOUTHOST "192.168.0.20"
 #define SIONOUTPORT "3490"
 #define CIELIN_SION_HOST "192.168.0.10"
 #define CIELIN_SION_PORT "3491"
 
-/* Ciel -> Sion sync lines */
+/*
+Sion <- Ciel sync request
+Sion -> Ciel sync reply
+*/
 #define CIELOUT_SYNC_HOST CIELIN_SION_HOST
 #define CIELOUT_SYNC_PORT "3492"
 #define SIONIN_SYNC_HOST SIONOUTHOST
 #define SIONIN_SYNC_PORT "3493"
 
-/* Seven -> Ciel */
+/*
+Seven -> Ciel control car telemetry
+*/
 #define SEVENOUTHOST "127.0.0.1"
 #define SEVENOUTPORT "3494"
 #define CIELIN_SEVEN_HOST "127.0.0.1"

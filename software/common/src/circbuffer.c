@@ -22,8 +22,8 @@ uint8_t remove_packet(can_pkt *pkt, can_pkt *buf, circbuf *count, uint16_t size)
 		location = location - size;
 	}
 */
-	pkt->id = buf[count->start+1].id;
-	pkt->payload = buf[count->start+1].payload;
+	pkt->id = buf[count->start].id;
+	pkt->payload = buf[count->start].payload;
 
 	//mark space as unused
 	count->length--;
@@ -44,7 +44,7 @@ uint8_t insert_packet(can_pkt *pkt, can_pkt *buf, circbuf *count, uint16_t size)
 
 	uint16_t location;
 	count->length++; //otherwise, let's allocate one spot
-	location = count->start + count->length; //locate the spot
+	location = count->start + count->length - 1; //locate the spot
 	if (location > (size-1)) { //trying to reach over the end of array, wrap back to the beginning
 		location = location - size;
 	}

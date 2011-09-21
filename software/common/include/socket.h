@@ -21,8 +21,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <fcntl.h>
-
 #include <stdio.h>
+#include <sys/poll.h>
 
 #include "scandal.h"
 
@@ -48,11 +48,12 @@ int socket_recv(int *sockfd, void *data, int maxlength);
 int queue_socket_send(int *sockfd, void *data, int msglength, struct addrinfo *remoteinfo,
 	 char *queue, int block_length);
 
+int socket_readable(int *sockfd);
+
 /* oold definitions, kept for comparison so far.
 int socket_init(char *local_host, int local_port,
                 char *remote_host, int remote_port);
 int socket_send(void *data, size_t length);
 int socket_recv(void *data, size_t length);
-int socket_readable(void);
 int socket_writeable(void);	
 */

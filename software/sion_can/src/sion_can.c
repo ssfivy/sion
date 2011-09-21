@@ -363,25 +363,33 @@ int main (void) {
 			/* read  buffer */
 			remove_packet(&opkt, outbuf, &outcount, CAN_OUT_BUFFER_SIZE);
 
-			tx_msg.id = opkt.id;
-			tx_msg.dataA[0] = (uint8_t) (0x000000FF & (opkt.payload >> 56));
-			tx_msg.dataA[1] = (uint8_t) (0x000000FF & (opkt.payload >> 48));
-			tx_msg.dataA[2] = (uint8_t) (0x000000FF & (opkt.payload >> 40));
-			tx_msg.dataA[3] = (uint8_t) (0x000000FF & (opkt.payload >> 32));
-			tx_msg.dataB[0] = (uint8_t) (0x000000FF & (opkt.payload >> 24));
-			tx_msg.dataB[1] = (uint8_t) (0x000000FF & (opkt.payload >> 16));
-			tx_msg.dataB[2] = (uint8_t) (0x000000FF & (opkt.payload >> 8));
-			tx_msg.dataB[3] = (uint8_t) (0x000000FF & (opkt.payload >> 0));
-			
-			//need to load all these parameters too, otherwise CMSIS chokes up and dies.
-			tx_msg.len = 0x08; //8 bytes length
-			tx_msg.format = EXT_ID_FORMAT; //29 bit header
-			tx_msg.type = DATA_FRAME; //data, not remote frame
-			
-			/* Send it off */
+			/* Check if this is a command to the Tritium stuff, then craft a tritium packet */
+			if (0) { //request to change wheel motor //not yet implemented
+				tx_msg.len = 0x08; //8 bytes length
+				tx_msg.format = STD_ID_FORMAT; //11 bit header
+				tx_msg.type = DATA_FRAME; //data, not remote frame
+			}
+			else {
+				//craft scandal packet as usual
+				tx_msg.id = opkt.id;
+				tx_msg.dataA[0] = (uint8_t) (0x000000FF & (opkt.payload >> 56));
+				tx_msg.dataA[1] = (uint8_t) (0x000000FF & (opkt.payload >> 48));
+				tx_msg.dataA[2] = (uint8_t) (0x000000FF & (opkt.payload >> 40));
+				tx_msg.dataA[3] = (uint8_t) (0x000000FF & (opkt.payload >> 32));
+				tx_msg.dataB[0] = (uint8_t) (0x000000FF & (opkt.payload >> 24));
+				tx_msg.dataB[1] = (uint8_t) (0x000000FF & (opkt.payload >> 16));
+				tx_msg.dataB[2] = (uint8_t) (0x000000FF & (opkt.payload >> 8));
+				tx_msg.dataB[3] = (uint8_t) (0x000000FF & (opkt.payload >> 0));
+				
+				//need to load all these parameters too, otherwise CMSIS chokes up and dies.
+				tx_msg.len = 0x08; //8 bytes length
+				tx_msg.format = EXT_ID_FORMAT; //29 bit header
+				tx_msg.type = DATA_FRAME; //data, not remote frame
+			}
+			/* Send it off to the bus*/
 			CAN_SendMsg(LPC_CAN2, &tx_msg);
 
-			/*	Add packet to the input queue, for logging
+			/*	Add packet to the input queue, so it will get recorded at the log.
 				We need to disable CAN interrupt here as we don't want this insert_packet to
 				be interrupted by CAN (which will call its own insert_packet). 
 				I have enough problem debugging this circular buffer, I am not going to make it atomic.
