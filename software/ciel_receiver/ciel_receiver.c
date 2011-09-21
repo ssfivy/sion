@@ -174,6 +174,9 @@ int main (void) {
 	}
 
 	/* Set up sockets */
+	int numbytes;
+	int loopcounter;
+	char receivequeue[MAX_SOCKET_BLOCK_LENGTH];
 
 	//select() stuff
 	fd_set master;
@@ -212,6 +215,8 @@ int main (void) {
 	fdmax++; //+1 as required by select()
 
 	/* Set up threads */
+
+	/* FIXME: Disabled due to debugging
 	printf("CIEL: Setting up threads...\n ");
 	pthread_t out_thread, sevenin_thread, sync_thread_handler;
 	int rc;
@@ -226,11 +231,13 @@ int main (void) {
 		exit(-1);
 	}
 	
-	//rc = pthread_create(&sync_thread_handler, NULL, sync_thread, NULL);
+	rc = pthread_create(&sync_thread_handler, NULL, sync_thread, NULL);
 	if (rc) {
 		printf("CIEL: ERROR: Return code from pthread_create for sync thread is %d\n", rc);
 		exit(-1);
 	}
+	*/
+
 
 	//FIXME 
 	/*
@@ -251,71 +258,82 @@ int main (void) {
 			if(FD_ISSET(fdcount, &read_fds)) {
 				if (fdcount == sockfd_sion ) {
 					/* Receiving live telemetry stream */
-					socket_recv(&sockfd_sion, string, SCANDALLONGSTRINGSIZE);
+					numbytes = socket_recv(&sockfd_sion, receivequeue, 
+						SCANDALLONGSTRINGSIZE * SOCKET_BLOCK_LENGTH);
 					gettimeofday(&tstamp, NULL); //hurry, grab the timestamp!
 				}
 				else if (fdcount == sockfd_seven) {
 					/* Receiving live control car stream */
-					socket_recv(&sockfd_seven, string, SCANDALLONGSTRINGSIZE);
+					numbytes = socket_recv(&sockfd_seven, receivequeue,
+						SCANDALLONGSTRINGSIZE * SOCKET_BLOCK_LENGTH);
 					gettimeofday(&tstamp, NULL); //hurry, grab the timestamp!
 				}
 				else if (fdcount == sockfd_sync) {
 					/* Receiving solar car retransmission */
-					socket_recv(&sockfd_sync, string, SCANDALLONGSTRINGSIZE);
+					numbytes = socket_recv(&sockfd_sync, receivequeue, 
+						SCANDALLONGSTRINGSIZE * SOCKET_BLOCK_LENGTH);
 					gettimeofday(&tstamp, NULL); //hurry, grab the timestamp!
 				}
 			}
 		}
 
-		//TODO: Fix the Scandal Channel messages etc timestamps to full 64-bit.
-
-		//socket_send(&sockfd_telemout, string, SCANDALLONGSTRINGSIZE, telemoutinfo); //to scanalysis
-		//socket_send(&sockfd_telemout2, string, SCANDALLONGSTRINGSIZE, telemoutinfo2); //to sunswift live
-		
-		longstringtoentry(string, &entry);
-		entry.ciel_timestamp = (((uint64_t) tstamp.tv_sec) * 1000) +
-			( (uint64_t) lrintf( ((float) tstamp.tv_usec) / 1000 ) ); 
-		//FIXME: delay log
-		//if(entry.source_address == 30 && entry.specifics == 6) {
-		//date_is_set = entry.value;
-		//printf("Today is %d days since epoch.\n\r", date_is_set);
-		//}	
-
-		//FIXME: Delay log.
-		//if (date_is_set && entry.source_address == 30 && entry.specifics == 5 ) {
-		//number_of_seconds_since_epoch = date_is_set * 24 * 3600;
-		// Calculate # of seconds today
-		//delay = tstamp.tv_sec -  (entry.value / 1000 + number_of_seconds_since_epoch);
-		//printf("Delay is %d seconds\n\r", delay);
-		//fprintf(delaylog, "%llu %ld\n\r", entry.scandal_timestamp, tstamp.tv_sec);
-		//sync();
-		//}
-
-		//FIXME: plaintext log, not needed
 		/*
-		fprintf(textlog,"%d\t%d\t%d\t%d\t%d\t%llu\t%llu\t%u\n\r", 
-		entry.priority, 
-		entry.message_type, 
-		entry.source_address, 
-		entry.specifics, 
-		entry.value,
-		entry.scandal_timestamp,
-		entry.ciel_timestamp,
-		entry.pkt_id);
+		Since each ethernet packet contains multiple CAN packets, we unpack them
+		one by one and process them individually.
 		*/
+		for (loopcounter=0; loopcounter < SOCKET_BLOCK_LENGTH; loopcounter++) {
+			//extract an individual packet
+			memmove(string, &receivequeue[(SCANDALLONGSTRINGSIZE*loopcounter)], SCANDALLONGSTRINGSIZE);
 
-		//queue_can_packet(db, &entry, SQLITE_BLOCKLEN); //duplicate packets are ignored by sqlite
+			//TODO: Fix the Scandal Channel messages etc timestamps to full 64-bit.
 
-		/* Debug function. Do not print too much UART or you'll slow everything down. */
-		#define SION_DEBUG
-		#ifdef SION_DEBUG
-			//printf_sion_entry(&entry);
-			printf("%llu\t%ld\t %ld\n\r", entry.scandal_timestamp,
-			tstamp.tv_sec, (tstamp.tv_sec - (int32_t)entry.scandal_timestamp)); 
-		#endif
-	}
+			//socket_send(&sockfd_telemout, string, SCANDALLONGSTRINGSIZE, telemoutinfo); //to scanalysis
+			//socket_send(&sockfd_telemout2, string, SCANDALLONGSTRINGSIZE, telemoutinfo2); //to sunswift live
+			
+			longstringtoentry(string, &entry);
+			entry.ciel_timestamp = (((uint64_t) tstamp.tv_sec) * 1000) +
+				( (uint64_t) lrintf( ((float) tstamp.tv_usec) / 1000 ) ); 
+			//FIXME: delay log
+			//if(entry.source_address == 30 && entry.specifics == 6) {
+			//date_is_set = entry.value;
+			//printf("Today is %d days since epoch.\n\r", date_is_set);
+			//}	
+
+			//FIXME: Delay log.
+			//if (date_is_set && entry.source_address == 30 && entry.specifics == 5 ) {
+			//number_of_seconds_since_epoch = date_is_set * 24 * 3600;
+			// Calculate # of seconds today
+			//delay = tstamp.tv_sec -  (entry.value / 1000 + number_of_seconds_since_epoch);
+			//printf("Delay is %d seconds\n\r", delay);
+			//fprintf(delaylog, "%llu %ld\n\r", entry.scandal_timestamp, tstamp.tv_sec);
+			//sync();
+			//}
+
+			//FIXME: plaintext log, not needed
+			/*
+			fprintf(textlog,"%d\t%d\t%d\t%d\t%d\t%llu\t%llu\t%u\n\r", 
+			entry.priority, 
+			entry.message_type, 
+			entry.source_address, 
+			entry.specifics, 
+			entry.value,
+			entry.scandal_timestamp,
+			entry.ciel_timestamp,
+			entry.pkt_id);
+			*/
+
+			queue_can_packet(db, &entry, SQLITE_BLOCKLEN); //duplicate packets are ignored by sqlite
+
+			/* Debug function. Do not print too much UART or you'll slow everything down. */
+			#define SION_DEBUG
+			#ifdef SION_DEBUG
+				//printf_sion_entry(&entry);
+				printf("%llu\t%u\n\r", entry.scandal_timestamp, entry.pkt_id); 
+			#endif
+		} //end processing individual packets
+	}// end infinite loop
 	
-	shutdown_sqlite3(db);
-	return 0;
+	shutdown_sqlite3(db);//why is this even here
+	return 0; //makes compiler happy
 }
 

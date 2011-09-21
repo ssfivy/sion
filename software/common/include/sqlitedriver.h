@@ -24,7 +24,7 @@
 
 /* Length of sqlite BEGIN....COMMIT block.
 */
-#define SQLITE_BLOCKLEN 50
+#define SQLITE_BLOCKLEN 200
 
 /* Connects to a database file and returns the connection object.
  * If database file is nonexistent, a new db file will be created.

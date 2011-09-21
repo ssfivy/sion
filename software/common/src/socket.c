@@ -109,3 +109,22 @@ int socket_recv(int *sockfd, void *data, int maxlength) {
 
 	return numbytes;
 }
+
+int queue_socket_send(int *sockfd, void *data, int msglength, struct addrinfo *remoteinfo,
+	char *queue, int block_length) {
+	static int block_size = 0;
+	int numbytes;
+
+	numbytes=0;
+//	printf("%d\t",(msglength * block_size));
+	memmove(&queue[(msglength*block_size)],  data, msglength);
+	block_size++;
+
+	if (block_size >= block_length) {
+		numbytes = socket_send(sockfd, queue, (msglength * block_size), remoteinfo);
+		block_size = 0;
+	}
+
+
+	return numbytes;
+}

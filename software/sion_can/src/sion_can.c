@@ -105,12 +105,14 @@ void CAN_IRQHandler(void) {
 		NVIC_DisableIRQ(CAN_IRQn);
 
 		for (l=0;l<sc_pkts_count;l++) {
-			//insert packet(s) to output buffer, where it will be re-broadcasted to the
-			//CAN bus and also put back into the input queue. This is for driver display etc.
-			//UARTPuts(LPC_UART0, "Got Tritium packet!!!\n\r");
-			
-			//insert_packet(&sc_pkts[l], inbuf, &incount, CAN_IN_BUFFER_SIZE); //old test. works.
-			insert_packet(&sc_pkts[l], outbuf, &outcount, CAN_OUT_BUFFER_SIZE); //also works.
+		#define TRANSLATE_TO_WIFI_ONLY
+		#ifdef TRANSLATE_TO_WIFI_ONLY
+			//translate tritium packet and send them to control car only.
+			insert_packet(&sc_pkts[l], inbuf, &incount, CAN_IN_BUFFER_SIZE);
+		#elif BROADCAST_TO_CAN_BUS
+			//translate tritium packet and rebroadcast to can bus and control car.
+			insert_packet(&sc_pkts[l], outbuf, &outcount, CAN_OUT_BUFFER_SIZE);
+		#endif
 		}
 		//turn interrupts back on
 		NVIC_EnableIRQ(UART1_IRQn);

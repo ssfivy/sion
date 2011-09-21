@@ -15,6 +15,7 @@ Irving Tjiptowarsono 2011
 #include <unistd.h> //usleep
 #include <signal.h> //signal
 #include <pthread.h> //multithreading
+#include <errno.h>
 
 #include "sionconfig.h"
 #include "sqlite3.h"
@@ -147,6 +148,8 @@ int main (int argc, char *argv[]) {
 
 	/* Networking stuff*/
 	printf("SION: Setting up networks...\n");
+	int numbytes;
+	char sendqueue[MAX_SOCKET_BLOCK_LENGTH];
 	socket_init(&sockfd_sender, &remoteinfo,
 		SIONOUTHOST, SIONOUTPORT, CIELIN_SION_HOST, CIELIN_SION_PORT) ;
 	socket_init(&sockfd_sync, &syncinfo,
@@ -192,13 +195,16 @@ int main (int argc, char *argv[]) {
 		pkt_id_new++;
 		entry.pkt_id = pkt_id_new;
 		entrytolongstring(&entry, string);
-		socket_send(&sockfd_sender, string, SCANDALLONGSTRINGSIZE, remoteinfo);
 
-		//queue_can_packet(db, &entry, SQLITE_BLOCKLEN);
+		//numbytes = socket_send(&sockfd_sender, string, SCANDALLONGSTRINGSIZE, remoteinfo);
+		numbytes = queue_socket_send(&sockfd_sender, string, SCANDALLONGSTRINGSIZE, remoteinfo,
+			 sendqueue, SOCKET_BLOCK_LENGTH);
+
+		queue_can_packet(db, &entry, SQLITE_BLOCKLEN);
 		
 		/* debug printout on terminal */
 		/* disable by default, since it can pollute login tty*/
-		//#define SION_DEBUG
+		#define SION_DEBUG
 		#ifdef SION_DEBUG
 		//this will cause lag, do not use unless under low bandwith.
 		//printf_sion_entry(&entry); 
