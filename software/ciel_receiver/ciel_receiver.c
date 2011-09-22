@@ -152,7 +152,7 @@ int main (void) {
 	
 	/* set up sqlite db */
 	makedbfile(dbfilename, ACCURACY_DAY);
-	//FILE *textlog = fopen("../canlog/scandal.log", "a");
+	FILE *textlog = fopen("../canlog/scandal.log", "a");
 
 
 	if (checkdbfile(dbfilename)){
@@ -274,8 +274,8 @@ int main (void) {
 
 			//TODO: Fix the Scandal Channel messages etc timestamps to full 64-bit.
 
-			//socket_send(&sockfd_telemout, string, SCANDALLONGSTRINGSIZE, telemoutinfo); //to scanalysis
-			//socket_send(&sockfd_telemout2, string, SCANDALLONGSTRINGSIZE, telemoutinfo2); //to sunswift live
+			socket_send(&sockfd_telemout, string, SCANDALSTRINGSIZE, telemoutinfo); //to scanalysis
+			//socket_send(&sockfd_telemout2, string, SCANDALSTRINGSIZE, telemoutinfo2); //to sunswift live
 			
 			longstringtoentry(string, &entry);
 			entry.ciel_timestamp = (((uint64_t) tstamp.tv_sec) * 1000) +
@@ -297,7 +297,7 @@ int main (void) {
 			//}
 
 			//FIXME: plaintext log, not needed
-			/*
+			
 			fprintf(textlog,"%d\t%d\t%d\t%d\t%d\t%llu\t%llu\t%u\n\r", 
 			entry.priority, 
 			entry.message_type, 
@@ -307,7 +307,7 @@ int main (void) {
 			entry.scandal_timestamp,
 			entry.ciel_timestamp,
 			entry.pkt_id);
-			*/
+			
 
 			queue_can_packet(db, &entry, SQLITE_BLOCKLEN); //duplicate packets are ignored by sqlite
 
