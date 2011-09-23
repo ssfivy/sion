@@ -78,12 +78,16 @@ void CAN_IRQHandler(void) {
 
 	//load struct
 	ipkt.id = rx_msg.id;
+
 	ipkt.payload = 
-		((uint64_t)rx_msg.dataA[0]<<56) 
+		 ((uint64_t)rx_msg.dataA[0]<<56) 
 		|((uint64_t)rx_msg.dataA[1]<<48) 
 		|((uint64_t)rx_msg.dataA[2]<<40) 
 		|((uint64_t)rx_msg.dataA[3]<<32)
-		|(rx_msg.dataB[0]<<24) |(rx_msg.dataB[1]<<16) |(rx_msg.dataB[2]<<8) |(rx_msg.dataB[3]);
+		|( (0xFF & (uint64_t)rx_msg.dataB[0]) << 24 ) 
+		|( (0xFF & (uint64_t)rx_msg.dataB[1]) << 16 ) 
+		|( (0xFF & (uint64_t)rx_msg.dataB[2]) <<  8 ) 
+		|( (0xFF & (uint64_t)rx_msg.dataB[3])       );
 
 		//put stuff thru buffer
 		insert_packet(&ipkt, inbuf, &incount, CAN_IN_BUFFER_SIZE);
@@ -351,10 +355,25 @@ int main (void) {
 			#ifdef PRINT_DEBUG
 			//UARTPutDec32(LPC_UART0, (uint32_t) n);
 			//UARTPuts(LPC_UART0, " <- Dropped packet count.\n\r");
+			/*
+			UARTPutDec(LPC_UART0, entry.priority);
+			UARTPutChar(LPC_UART0, '\t');
+			UARTPutDec(LPC_UART0, entry.message_type);
+			UARTPutChar(LPC_UART0, '\t');
+			UARTPutDec(LPC_UART0, entry.source_address);
+			UARTPutChar(LPC_UART0, '\t');
+			UARTPutDec16(LPC_UART0, entry.specifics);
+			UARTPutChar(LPC_UART0, '\t');
+			sprintf_(buf, "%d", entry.value);
+			UARTPuts(LPC_UART0, buf);
+			UARTPutChar(LPC_UART0, '\t');
+			UARTPutChar(LPC_UART0, '\t');
+			*/
 
 			UARTPutDec32(LPC_UART0, (uint32_t) (entry.scandal_timestamp & 0xFFFFFFFF));
-			UARTPutChar(LPC_UART0, '\n');
 			UARTPutChar(LPC_UART0, '\r');
+			UARTPutChar(LPC_UART0, '\n');
+
 			#endif
 		}
 
