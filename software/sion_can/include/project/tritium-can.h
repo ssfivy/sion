@@ -97,9 +97,19 @@ since we want 3 channels out from the status packet.
 */
 #define MAX_SC_CHN_PER_TRI_CHN	3
 
+
+typedef union _value {
+	float 		data_float[2];
+	uint8_t		data_u8[8];
+	uint16_t	data_u16[4];
+	uint32_t 	data_u32[2];
+	uint64_t	data_u64;
+} value_t;
+
+can_pkt pkt;
+sion_entry entry;
+
 void craft_scandal_packet(can_pkt *sc_pkts, uint8_t index, uint8_t priority, uint16_t channel_number, int32_t value, uint32_t timestamp) {
-	can_pkt pkt;
-	sion_entry entry;
 
 	entry.priority = priority;
 	entry.message_type = 0x00; //channel message
@@ -111,14 +121,6 @@ void craft_scandal_packet(can_pkt *sc_pkts, uint8_t index, uint8_t priority, uin
 	entrytocan(&entry, &pkt);
 	sc_pkts[index] = pkt;
 }
-
-typedef union _value {
-	float 		data_float[2];
-	uint8_t		data_u8[8];
-	uint16_t	data_u16[4];
-	uint32_t 	data_u32[2];
-	uint64_t	data_u64;
-} value_t;
 
 
 void tritium_to_scandal_packet(CAN_MSG_Type *tri_pkt, can_pkt *sc_pkts, uint8_t *sc_pkts_count) {
@@ -144,12 +146,25 @@ void tritium_to_scandal_packet(CAN_MSG_Type *tri_pkt, can_pkt *sc_pkts, uint8_t 
 
 
 	switch(tri_pkt->id & 0x07FF) {
-/*
+
 	case MC_CAN_BASE: //sort of a heartbeat packet
-		craft_scandal_packet(sc_pkts, 0, TELEM_LOW, WS20_TRITIUM_HEARTBEAT, value, timestamp);
-		*sc_pkts_count = 1;
+		value.data_u32[0] = 0x00000000; //make sure there's no leftover data
+		value.data_u32[0] = MC_CAN_BASE; //write the base address
+		craft_scandal_packet(sc_pkts, 0, TELEM_LOW, WS20_TRITIUM_HEARTBEAT, value.data_u32[0], timestamp);
+
+		/* also craft a scandal heartbeat packet so scanalysis can detect it*/
+		entry.priority = 0x06; //NETWORK_LOW
+		entry.message_type = 0x02; //channel message
+		entry.source_address = WAVESCULPTOR_SCANDAL_ADDRESS;
+		entry.specifics = WS20; //Wavesculptor 20
+		entry.value = 2560; //2560 integer = whatever all other nodes' heartbeats sent
+		entry.scandal_timestamp = timestamp;
+		entrytocan(&entry, &pkt);
+		sc_pkts[1] = pkt;
+
+		*sc_pkts_count = 2;
 	break;
-*/
+
 	case (MC_CAN_BASE + MC_STATUS): //status
 		craft_scandal_packet(sc_pkts, 0, TELEM_LOW, WS20_ACTIVE_MOTOR, value.data_u16[2], timestamp);
 		craft_scandal_packet(sc_pkts, 1, TELEM_HIGH, WS20_ERRORS, value.data_u16[1], timestamp);
@@ -158,9 +173,9 @@ void tritium_to_scandal_packet(CAN_MSG_Type *tri_pkt, can_pkt *sc_pkts, uint8_t 
 	break;
 
 	case (MC_CAN_BASE + MC_BUS): //bus current & voltage
-		craft_scandal_packet(sc_pkts, 0, TELEM_HIGH, WS20_BUSVOLT, (int32_t) (value.data_float[0]), timestamp);
+		craft_scandal_packet(sc_pkts, 0, TELEM_HIGH, WS20_BUSVOLT, (int32_t) (value.data_float[0] * 1000.0), timestamp);
 		craft_scandal_packet(sc_pkts, 1, TELEM_HIGH, WS20_BUSCURRENT, (int32_t)(value.data_float[1] * 1000.0), timestamp);
-		*sc_pkts_count = 1;
+		*sc_pkts_count = 2;
 	break;
 
 	case MC_CAN_BASE + MC_VELOCITY: //velocity, converted to km/h
@@ -192,7 +207,7 @@ void tritium_to_scandal_packet(CAN_MSG_Type *tri_pkt, can_pkt *sc_pkts, uint8_t 
 
 	case MC_CAN_BASE + MC_ODO: //currentint & odometer
 		craft_scandal_packet(sc_pkts, 0, TELEM_LOW, WS20_AMP_HOURS, (int32_t) (value.data_float[1] * 1000.0), timestamp);
-		craft_scandal_packet(sc_pkts, 1, TELEM_LOW, WS20_ODOMETER, (int32_t) (value.data_float[0] * 1000.0), timestamp);
+		craft_scandal_packet(sc_pkts, 1, TELEM_LOW, WS20_ODOMETER, (int32_t) (value.data_float[0]), timestamp);
 		*sc_pkts_count = 2;
 	break;
 
