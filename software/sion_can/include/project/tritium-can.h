@@ -17,14 +17,15 @@
 
 #include "scandal.h" /* scandal.h from SION. */
 #include "arch/can.h"
+#include "arch/debug_frmwrk.h"
 //#include "scandal_timestamp.h" //also from SION
 
 //#define __INTEGRATE_SCANDAL__
-#ifdef __INTEGRATE_SCANDAL__
-#include "scandal_devices.h" //from scandal.
-#include "scandal_timer.h"
+//#ifdef __INTEGRATE_SCANDAL__
+//#include "scandal_devices.h" //from scandal.
+//#include "scandal_timer.h"
 
-#else
+//#else
 
 //Scandal node type
 #define WS20	36
@@ -61,7 +62,7 @@
 #define WS20_CHANGE_ACTIVE_MOTOR	0
 
 
-#endif // __INTEGRATE_SCANDAL__
+//#endif // __INTEGRATE_SCANDAL__
 
 #define WAVESCULPTOR_SCANDAL_ADDRESS 12
 #define SCANDAL_NODE_TYPE	WS20
@@ -96,30 +97,36 @@ since we want 3 channels out from the status packet.
 */
 #define MAX_SC_CHN_PER_TRI_CHN	3
 
-static inline void craft_scandal_packet(can_pkt *sc_pkts, uint8_t index, uint8_t priority, uint16_t channel_number, int32_t value, uint32_t timestamp) {
+void craft_scandal_packet(can_pkt *sc_pkts, uint8_t index, uint8_t priority, uint16_t channel_number, int32_t value, uint32_t timestamp) {
 	can_pkt pkt;
 	sion_entry entry;
+
 	entry.priority = priority;
 	entry.message_type = 0x00; //channel message
 	entry.source_address = WAVESCULPTOR_SCANDAL_ADDRESS;
 	entry.specifics = channel_number;
 	entry.value = value;
 	entry.scandal_timestamp = timestamp;
+
 	entrytocan(&entry, &pkt);
 	sc_pkts[index] = pkt;
 }
 
-static inline void tritium_to_scandal_packet(CAN_MSG_Type *tri_pkt, can_pkt *sc_pkts, uint8_t *sc_pkts_count) {
+typedef union _value {
+	float 		data_float[2];
+	uint8_t		data_u8[8];
+	uint16_t	data_u16[4];
+	uint32_t 	data_u32[2];
+	uint64_t	data_u64;
+} value_t;
+
+
+void tritium_to_scandal_packet(CAN_MSG_Type *tri_pkt, can_pkt *sc_pkts, uint8_t *sc_pkts_count) {
 	uint32_t i, timestamp;
-	union value_t {
-	uint8_t data_u8[8];
-	uint16_t data_u16[4];
-	uint64_t data_u64;
-	float data_float[2];
-	} value;
+	value_t value;
 
 	#ifdef __INTEGRATE_SCANDAL__
-	timestamp = scandal_get_realtime32();
+	//timestamp = scandal_get_realtime32();
 	#else
 	timestamp = 31337; //FIXME: Get proper timing info
 	#endif
@@ -143,17 +150,17 @@ static inline void tritium_to_scandal_packet(CAN_MSG_Type *tri_pkt, can_pkt *sc_
 		*sc_pkts_count = 1;
 	break;
 */
-	case MC_CAN_BASE + MC_STATUS: //status
+	case (MC_CAN_BASE + MC_STATUS): //status
 		craft_scandal_packet(sc_pkts, 0, TELEM_LOW, WS20_ACTIVE_MOTOR, value.data_u16[2], timestamp);
 		craft_scandal_packet(sc_pkts, 1, TELEM_HIGH, WS20_ERRORS, value.data_u16[1], timestamp);
 		craft_scandal_packet(sc_pkts, 2, TELEM_HIGH, WS20_LIMITS, value.data_u16[0], timestamp);
 		*sc_pkts_count = 3;
 	break;
 
-	case MC_CAN_BASE + MC_BUS: //bus current & voltage
-		craft_scandal_packet(sc_pkts, 0, TELEM_HIGH, WS20_BUSVOLT, (int32_t)(value.data_float[0] * 1000.0), timestamp);
+	case (MC_CAN_BASE + MC_BUS): //bus current & voltage
+		craft_scandal_packet(sc_pkts, 0, TELEM_HIGH, WS20_BUSVOLT, (int32_t) (value.data_float[0]), timestamp);
 		craft_scandal_packet(sc_pkts, 1, TELEM_HIGH, WS20_BUSCURRENT, (int32_t)(value.data_float[1] * 1000.0), timestamp);
-		*sc_pkts_count = 2;
+		*sc_pkts_count = 1;
 	break;
 
 	case MC_CAN_BASE + MC_VELOCITY: //velocity, converted to km/h

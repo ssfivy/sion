@@ -23,10 +23,11 @@ OBJECTS += i2c.o ssp.o clkpwr.o
 OBJECTS += cr_startup_lpc17.o
 
 CFLAGS += -mcpu=$(MCU) -D__NEWLIB__ -D__USE_CMSIS -D__CODE_RED -mthumb
-CFLAGS += -lm -g
+CFLAGS += -lm -g 
 
 LSCRIPT = $(LINKER)/$(LINKSCRIPT)
 LDFLAGS  = -Xlinker -Map=$(BUILD)/$(MAIN_NAME).map -Xlinker --gc-sections -L $(LINKER) -T "$(LSCRIPT)"
+LDFLAGS += -mcpu=$(MCU) -mthumb
 
 ASFLAGS = -ahls -mcpu=cortex-m3
 

@@ -61,12 +61,15 @@ circbuf incount, outcount;
 
 /* Tritium translation... */
 can_pkt sc_pkts[MAX_SC_CHN_PER_TRI_CHN]; //see definition...
-uint8_t sc_pkts_count, l;
+uint8_t sc_pkts_count = 0;
+uint8_t l=0;
 
 /* Status sending... */
 sion_entry bentry;
 can_pkt bpkts[SION_NUM_OUT_CHANNELS+1];
 uint8_t m;
+
+uint8_t testing_flag;
 
 /* CAN rx interrupt handler */
 void CAN_IRQHandler(void) {
@@ -76,28 +79,28 @@ void CAN_IRQHandler(void) {
 	//Check if we have a standard or extended length header (tritium or scandal packet)
 	if (rx_msg.format == EXT_ID_FORMAT) {
 
-	//load struct
-	ipkt.id = rx_msg.id;
+		//load struct
+		ipkt.id = rx_msg.id;
 
-	ipkt.payload = 
-		 ((uint64_t)rx_msg.dataA[0]<<56) 
-		|((uint64_t)rx_msg.dataA[1]<<48) 
-		|((uint64_t)rx_msg.dataA[2]<<40) 
-		|((uint64_t)rx_msg.dataA[3]<<32)
-		|( (0xFF & (uint64_t)rx_msg.dataB[0]) << 24 ) 
-		|( (0xFF & (uint64_t)rx_msg.dataB[1]) << 16 ) 
-		|( (0xFF & (uint64_t)rx_msg.dataB[2]) <<  8 ) 
-		|( (0xFF & (uint64_t)rx_msg.dataB[3])       );
+		ipkt.payload = 
+			 ((uint64_t)rx_msg.dataA[0]<<56) 
+			|((uint64_t)rx_msg.dataA[1]<<48) 
+			|((uint64_t)rx_msg.dataA[2]<<40) 
+			|((uint64_t)rx_msg.dataA[3]<<32)
+			|( (0xFF & (uint64_t)rx_msg.dataB[0]) << 24 ) 
+			|( (0xFF & (uint64_t)rx_msg.dataB[1]) << 16 ) 
+			|( (0xFF & (uint64_t)rx_msg.dataB[2]) <<  8 ) 
+			|( (0xFF & (uint64_t)rx_msg.dataB[3])       );
 
-		//put stuff thru buffer
-		insert_packet(&ipkt, inbuf, &incount, CAN_IN_BUFFER_SIZE);
+			//put stuff thru buffer
+			insert_packet(&ipkt, inbuf, &incount, CAN_IN_BUFFER_SIZE);
 	}
 	else {
 
 		//convert to scandal packet(s)
 		tritium_to_scandal_packet(&rx_msg, sc_pkts, &sc_pkts_count);
 		//UARTPutDec32(LPC_UART0, (uint32_t) sc_pkts_count);
-
+		//toggle_red_led();
 		/*
 		if this packet doesnt have what we want (eg, we dont want random DC voltage)
 		then sc_pkts_count will be 0 and the following for loopwill be skipped.
@@ -351,11 +354,11 @@ int main (void) {
 			//and not enough time writing to overo UART.
 			//also this should use nonblocking UART
 
-			#define PRINT_DEBUG
-			#ifdef PRINT_DEBUG
+			#define PRINT_LONG_DEBUG
+			#ifdef PRINT_LONG_DEBUG
 			//UARTPutDec32(LPC_UART0, (uint32_t) n);
 			//UARTPuts(LPC_UART0, " <- Dropped packet count.\n\r");
-			/*
+			
 			UARTPutDec(LPC_UART0, entry.priority);
 			UARTPutChar(LPC_UART0, '\t');
 			UARTPutDec(LPC_UART0, entry.message_type);
@@ -368,8 +371,11 @@ int main (void) {
 			UARTPuts(LPC_UART0, buf);
 			UARTPutChar(LPC_UART0, '\t');
 			UARTPutChar(LPC_UART0, '\t');
-			*/
+			UARTPutDec32(LPC_UART0, (uint32_t) (entry.scandal_timestamp & 0xFFFFFFFF));
+			UARTPutChar(LPC_UART0, '\r');
+			UARTPutChar(LPC_UART0, '\n');
 
+			#elif PRINT_DEBUG
 			UARTPutDec32(LPC_UART0, (uint32_t) (entry.scandal_timestamp & 0xFFFFFFFF));
 			UARTPutChar(LPC_UART0, '\r');
 			UARTPutChar(LPC_UART0, '\n');
