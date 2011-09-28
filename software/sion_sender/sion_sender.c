@@ -91,7 +91,7 @@ void * output_thread (void) {
 
 	can_pkt opkt;
 	sion_entry oentry;
-	uint8_t ostring[SCANDALLONGSTRINGSIZE];
+	uint8_t ostring[SCANDALSTRINGSIZE];
 
 	printf("SION: Output thread: Waiting until CAN interface is ready...\n");
 	while (can_interface_ready != 0){
@@ -101,8 +101,8 @@ void * output_thread (void) {
 	printf("SION: Done initialising output thread, entering main loop....\n");
 	while (1) {
 		if (socket_readable(&sockfd_sender) == 0){ //if there's data in the socket...
-			socket_recv(&sockfd_sender, ostring, SCANDALLONGSTRINGSIZE);
-			longstringtoentry(ostring, &oentry);
+			socket_recv(&sockfd_sender, ostring, SCANDALSTRINGSIZE);
+			stringtoentry(ostring, &oentry);
 			//printf_sion_entry(&oentry);
 			entrytocan(&oentry, &opkt);
 			send_can_pkt(&opkt);

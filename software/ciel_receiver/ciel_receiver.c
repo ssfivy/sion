@@ -61,13 +61,13 @@ struct addrinfo *sioninfo, *telemoutinfo, *seveninfo, *syncinfo, *telemoutinfo2;
 //TODO: Make so this warning goes away.
 void * output_thread (void) {
 	printf("CIEL: Output thread started....\n");
-
-	uint8_t ostring[SCANDALLONGSTRINGSIZE];
+	sion_entry testentry; //DEBUG
+	uint8_t ostring[SCANDALSTRINGSIZE];
 	printf("CIEL: Done initialising output thread, entering main loop...\n");
 	while(1) {
 		if (socket_readable(&sockfd_telemout) == 0) {//if there is data...
-			socket_recv(&sockfd_telemout, ostring, SCANDALLONGSTRINGSIZE); //grab it
-			socket_send(&sockfd_sion, ostring, SCANDALLONGSTRINGSIZE, sioninfo); //and pass it to SION
+			socket_recv(&sockfd_telemout, ostring, SCANDALSTRINGSIZE); //grab it
+			socket_send(&sockfd_sion, ostring, SCANDALSTRINGSIZE, sioninfo); //and pass it to SION
 		}
 	}
 	pthread_exit(NULL);
