@@ -64,12 +64,16 @@ can_pkt sc_pkts[MAX_SC_CHN_PER_TRI_CHN]; //see definition...
 uint8_t sc_pkts_count = 0;
 uint8_t l=0;
 
+/* Timestamping */
+sion_entry tentry;
+uint64_t timestamp64;
+uint32_t timestamp_offset;
+
 /* Status sending... */
 sion_entry bentry;
 can_pkt bpkts[SION_NUM_OUT_CHANNELS+1];
 uint8_t m;
 
-uint8_t testing_flag;
 
 /* CAN rx interrupt handler */
 void CAN_IRQHandler(void) {
@@ -92,8 +96,14 @@ void CAN_IRQHandler(void) {
 			|( (0xFF & (uint64_t)rx_msg.dataB[2]) <<  8 ) 
 			|( (0xFF & (uint64_t)rx_msg.dataB[3])       );
 
-			//put stuff thru buffer
-			insert_packet(&ipkt, inbuf, &incount, CAN_IN_BUFFER_SIZE);
+		cantoentry(&ipkt, &tentry);
+		if (tentry.message_type == 0x08) {
+			//this is a timesync packet so we update offset
+			timestamp64 = ipkt.payload;
+			timestamp_offset = (uint32_t) (0x00000000FFFFFFFF & timestamp64) - (LPC_TIM0->TC);
+		}
+		//put stuff thru buffer
+		insert_packet(&ipkt, inbuf, &incount, CAN_IN_BUFFER_SIZE);
 	}
 	else {
 
@@ -239,15 +249,15 @@ int main (void) {
 	dropped_packet_count = 0;
 	received_packet_count = 0;
 
-	/*Timer. Not used. Was playing with it. Works, I think.
+	/*Timer. Used for tritium packet timestamping */
 	TIM_TIMERCFG_Type TIM_ConfigStruct;
 	TIM_ConfigStruct.PrescaleOption = TIM_PRESCALE_TICKVAL;
-	TIM_ConfigStruct.PrescaleValue = 12000000;
+	TIM_ConfigStruct.PrescaleValue = ((SystemCoreClock/4)/1000);
 	TIM_Init(LPC_TIM0, TIM_TIMER_MODE, &TIM_ConfigStruct);
 
 	TIM_ResetCounter(LPC_TIM0);
 	TIM_Cmd(LPC_TIM0, ENABLE);
-	*/
+	
 
 	/* Initialise all CAN stuff */
 	incount.start = 0;
@@ -354,7 +364,7 @@ int main (void) {
 			//and not enough time writing to overo UART.
 			//also this should use nonblocking UART
 
-			#define PRINT_LONG_DEBUG
+			#define PRINT_DEBUG
 			#ifdef PRINT_LONG_DEBUG
 			//UARTPutDec32(LPC_UART0, (uint32_t) n);
 			//UARTPuts(LPC_UART0, " <- Dropped packet count.\n\r");
@@ -374,8 +384,9 @@ int main (void) {
 			UARTPutDec32(LPC_UART0, (uint32_t) (entry.scandal_timestamp & 0xFFFFFFFF));
 			UARTPutChar(LPC_UART0, '\r');
 			UARTPutChar(LPC_UART0, '\n');
+			#endif
 
-			#elif PRINT_DEBUG
+			#ifdef PRINT_DEBUG
 			UARTPutDec32(LPC_UART0, (uint32_t) (entry.scandal_timestamp & 0xFFFFFFFF));
 			UARTPutChar(LPC_UART0, '\r');
 			UARTPutChar(LPC_UART0, '\n');

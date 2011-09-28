@@ -87,8 +87,10 @@ typedef struct control_packet_structure {
 	uint32_t value;
 }control_packet;
 
-/* convert between structures */
+extern uint32_t timestamp_offset;
 
+
+/* convert between structures */
 static inline void cantoentry(can_pkt *pkt, sion_entry *entry) {
 	//these macros also masks everything unneccesary, so the header length bit is discarded.
 	entry->priority = GET_PRIORITY(pkt); 

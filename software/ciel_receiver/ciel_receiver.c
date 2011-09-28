@@ -314,8 +314,8 @@ int main (void) {
 			/* Debug function. Do not print too much UART or you'll slow everything down. */
 			#define SION_DEBUG
 			#ifdef SION_DEBUG
-				//printf_sion_entry(&entry);
-				printf("%llu\t%u\n\r", entry.scandal_timestamp, entry.pkt_id); 
+				printf_sion_entry(&entry);
+				//printf("%llu\t%u\n\r", entry.scandal_timestamp, entry.pkt_id); 
 			#endif
 		} //end processing individual packets
 	}// end infinite loop

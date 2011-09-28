@@ -184,7 +184,8 @@ void tritium_to_scandal_packet(CAN_MSG_Type *tri_pkt, can_pkt *sc_pkts, uint8_t 
 	static uint8_t tritium_device_type = 0; //by default, no device
 
 	//timestamp = scandal_get_realtime32();
-	timestamp = 31337; //FIXME: Get proper timing info
+	//timestamp = 31337; //FIXME: Get proper timing info
+	timestamp = (LPC_TIM0->TC) + timestamp_offset;
 
 	*sc_pkts_count = 0; //at first, assume nothing in this packet is useful
 
@@ -206,7 +207,7 @@ void tritium_to_scandal_packet(CAN_MSG_Type *tri_pkt, can_pkt *sc_pkts, uint8_t 
 			tritium_device_type = WS20;
 		}
 	}
-	else if ((tri_pkt->id & 0x07FF) == WS22_MC_CAN_BASE) {
+	if ((tri_pkt->id & 0x07FF) == WS22_MC_CAN_BASE) {
 		//check that a wavesculptor 22 is present
 		if ((value.data_u8[0] == 'T') &&
 			(value.data_u8[1] == '0') &&
