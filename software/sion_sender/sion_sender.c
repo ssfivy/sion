@@ -203,7 +203,7 @@ int main (int argc, char *argv[]) {
 		queue_can_packet(db, &entry, SQLITE_BLOCKLEN);
 		
 		/* debug printout on terminal. disable by default, since it can pollute login tty*/
-		#define SION_DEBUG
+		//#define SION_DEBUG
 		#ifdef SION_DEBUG
 		//this will cause lag, do not use unless under low bandwith.
 		//printf_sion_entry(&entry); 
