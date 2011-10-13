@@ -32,11 +32,25 @@ Seven -> Ciel control car telemetry
 #define CIELIN_SEVEN_HOST "127.0.0.1"
 #define CIELIN_SEVEN_PORT "3495"
 
-/* Ciel -> open socket to scanalysis or whatever is the latest monitoring soft */
+/* Ciel -> open socket to scanalysis or whatever is the latest monitoring soft 
+This sends one CAN message per ethernet frame so it should not 
+be used between computers, loopback interface only
+since it may / will kill performance.
+*/
 #define CIELOUT_OPEN_HOST "127.0.0.1"
 #define CIELOUT_OPEN_PORT "3496"
 #define TELEM_TARGET_HOST "127.0.0.1"
 #define TELEM_TARGET_PORT "31337"
+
+/* Ciel -> open socket to another instance of ciel_receiver.
+Used in 2011 to send data to sunswift live.
+This sends the packed ethernet frames directly, so
+each frame will still contain multiple CAN packets.
+*/
+#define CIELOUT_OPEN_HOST2 "192.168.0.10"
+#define CIELOUT_OPEN_PORT2 "3498"
+#define TELEM_TARGET_HOST2 "192.168.0.30"
+#define TELEM_TARGET_PORT2 "3499"
 
 /* Same as above but with multicast; last I checked multicast is broken on python, so...*/
 /* Currently not implemented */

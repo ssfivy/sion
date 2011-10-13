@@ -61,7 +61,7 @@ struct addrinfo *sioninfo, *telemoutinfo, *seveninfo, *syncinfo, *telemoutinfo2;
 //TODO: Make so this warning goes away.
 void * output_thread (void) {
 	printf("CIEL: Output thread started....\n");
-	sion_entry testentry; //DEBUG
+	//sion_entry testentry; //DEBUG
 	uint8_t ostring[SCANDALSTRINGSIZE];
 	printf("CIEL: Done initialising output thread, entering main loop...\n");
 	while(1) {
@@ -188,12 +188,12 @@ int main (void) {
 	//socket for receiving Seven data.
 	socket_init(&sockfd_seven, &seveninfo, 
 				CIELIN_SEVEN_HOST, CIELIN_SEVEN_PORT, SEVENOUTHOST, SEVENOUTPORT);
-	//socket for sending these to something else.
+	//socket for sending these to something else eg scanalysis
 	socket_init(&sockfd_telemout, &telemoutinfo,
 				CIELOUT_OPEN_HOST, CIELOUT_OPEN_PORT, TELEM_TARGET_HOST , TELEM_TARGET_PORT) ;
-	//socket for sending these to something else.
-	//socket_init(&sockfd_telemout2, &telemoutinfo2,
-	//			CIELOUT_OPEN_HOST2, CIELOUT_OPEN_PORT2, TELEM_TARGET_HOST2 , TELEM_TARGET_PORT2) ;
+	//socket for sending packed telemetry to something else eg sunswift live
+	socket_init(&sockfd_telemout2, &telemoutinfo2,
+				CIELOUT_OPEN_HOST2, CIELOUT_OPEN_PORT2, TELEM_TARGET_HOST2 , TELEM_TARGET_PORT2) ;
 
 
 	//more select() stuff
@@ -264,6 +264,10 @@ int main (void) {
 			}
 		}
 
+		/* Send packed frames to something else. Used in 2011 for sunswift live */
+		socket_send(&sockfd_telemout2, receivequeue, SCANDALLONGSTRINGSIZE * SOCKET_BLOCK_LENGTH, telemoutinfo2);
+
+
 		/*
 		Since each ethernet packet contains multiple CAN packets, we unpack them
 		one by one and process them individually.
@@ -274,28 +278,13 @@ int main (void) {
 
 			//TODO: Fix the Scandal Channel messages etc timestamps to full 64-bit.
 
-			socket_send(&sockfd_telemout, string, SCANDALSTRINGSIZE, telemoutinfo); //to scanalysis
-			//socket_send(&sockfd_telemout2, string, SCANDALSTRINGSIZE, telemoutinfo2); //to sunswift live
 			
 			longstringtoentry(string, &entry);
 			entry.ciel_timestamp = (((uint64_t) tstamp.tv_sec) * 1000) +
 				( (uint64_t) lrintf( ((float) tstamp.tv_usec) / 1000 ) ); 
-			//FIXME: delay log
-			//if(entry.source_address == 30 && entry.specifics == 6) {
-			//date_is_set = entry.value;
-			//printf("Today is %d days since epoch.\n\r", date_is_set);
-			//}	
 
-			//FIXME: Delay log.
-			//if (date_is_set && entry.source_address == 30 && entry.specifics == 5 ) {
-			//number_of_seconds_since_epoch = date_is_set * 24 * 3600;
-			// Calculate # of seconds today
-			//delay = tstamp.tv_sec -  (entry.value / 1000 + number_of_seconds_since_epoch);
-			//printf("Delay is %d seconds\n\r", delay);
-			//fprintf(delaylog, "%llu %ld\n\r", entry.scandal_timestamp, tstamp.tv_sec);
-			//sync();
-			//}
-
+			entrytostring(&entry, string); //we don't send everything to scanalysis
+			socket_send(&sockfd_telemout, string, SCANDALSTRINGSIZE, telemoutinfo); //to scanalysis
 			//FIXME: plaintext log, not needed
 			
 			fprintf(textlog,"%d\t%d\t%d\t%d\t%d\t%llu\t%llu\t%u\n\r", 
@@ -314,8 +303,8 @@ int main (void) {
 			/* Debug function. Do not print too much UART or you'll slow everything down. */
 			#define SION_DEBUG
 			#ifdef SION_DEBUG
-				printf_sion_entry(&entry);
-				//printf("%llu\t%u\n\r", entry.scandal_timestamp, entry.pkt_id); 
+				//printf_sion_entry(&entry);
+				printf("%llu\t%u\n\r", entry.scandal_timestamp, entry.pkt_id); 
 			#endif
 		} //end processing individual packets
 	}// end infinite loop

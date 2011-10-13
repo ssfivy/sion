@@ -24,31 +24,45 @@ conn = sqlite3.connect(dbname)
 c = conn.cursor()
 
 #create empty numpy array to hold data. Memory intensive, I know :(
-c.execute('SELECT COUNT(*) FROM canlog WHERE packet_number > ? AND packet_number < ? AND messagetype = ? AND sourceaddress = ? AND specifics = ?', pkt)
-graph = numpy.empty(shape=(c.fetchone()[0], 9))
+c.execute('SELECT COUNT(packet_number) FROM canlog WHERE packet_number > ? AND packet_number < ? AND message_type = ? AND source_address = ? AND specifics = ?', pkt)
+graph = numpy.empty(shape=(c.fetchone()[0], 2))
 
 #fetch data from database
 line = 0
-c.execute('SELECT * FROM canlog WHERE packet_number > ? AND packet_number < ? AND messagetype = ? AND sourceaddress = ? AND specifics = ? ORDER BY packet_number', pkt)
+c.execute('SELECT value, ciel_timestamp FROM canlog WHERE packet_number > ? AND packet_number < ? AND message_type = ? AND source_address = ? AND specifics = ? ORDER BY packet_number', pkt)
 for row in c:
 	graph[line] = row
 	line +=1
+
+
+#create empty numpy array to hold data. Memory intensive, I know :(
+c.execute('SELECT COUNT(packet_number) FROM canlog WHERE message_type = 0 AND source_address = 12 AND specifics = 2')
+graph2 = numpy.empty(shape=(c.fetchone()[0], 2))
+
+#fetch data from database
+line = 0
+c.execute('SELECT value, ciel_timestamp FROM canlog WHERE message_type = 0 AND source_address = 12 AND specifics = 2 ORDER BY packet_number')
+for row in c:
+	graph2[line] = row
+	line +=1
+
 
 #close database, we're done with it
 c.close()
 
 #debug info, can be omitted
-print graph[:,8]
+#print graph[:,7]
 print graph.shape
 print graph.size
-print graph.dtype.name
-print graph.itemsize
+#print graph.dtype.name
+#print graph.itemsize
 
 #plot stuff
 
-plt.plot(graph[:,8], graph[:,5], 'r.')
-plt.plot(graph[:,8], graph[:,5])
-
+plt.plot(graph[:,1], graph[:,0], 'r.')
+plt.plot(graph[:,1], graph[:,0] )
+plt.plot(graph2[:,1], graph2[:,0]*10000, 'g.')
+plt.plot(graph2[:,1], graph2[:,0]*10000 )
 #dt = datetime.datetime.fromtimestamp(graph[:,8])
 #dates = matplotlib.dates.date2num(dt)
 #plt.plot_dates(dates, graph[:,5], 'r.')
@@ -56,5 +70,6 @@ plt.plot(graph[:,8], graph[:,5])
 #axis, show, etc
 plt.ylabel('current')
 plt.xlabel('time')
+plt.grid(True)
 plt.show()
 
