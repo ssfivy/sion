@@ -1,0 +1,41 @@
+# SION - Sunswift IVy Observer Node
+
+The original documentation for SION is in 4 mediawiki pages, which is now stored in the /docs directory. They are split as:
+* sion.wiki - General overview of the project
+* siondev1.wiki - R&D research notes, first part
+* siondev2.wiki - R&D research notes, second part
+* sionlinux.wiki - Linux / OS research notes
+
+Furthermore, the thesis report is also included, which may be a more coherent introduction to the project. Note that the thesis deadline is before the actual project deadline, so there are further developments that was not recorded there, such as the second hardware revision.
+
+SION is licensed under the GNU General Public License, version 3 or later.
+
+## Description
+SION is a wireless telemetry system designed to replace the aging PLEB in the Sunswift IV solar car.
+The system consists of a CAN to Wi-Fi node in Sunswift IV, which connects to a wireless access point (WAP) in the chase vehicle.
+The WAP is in turn connected to the strategist's laptop via Ethernet.
+
+Its advantages over the PLEB includes lower power consumption and on-board data logging.
+PLEB is also non-replacable as it relies on the StrongARM SA-1100 made by ''Digital Equipment Corporation'''.
+Furthermore, the last working PLEB unit broke down in December 2010, days before the Guiness land speed record.
+
+Internally, SION uses a LPC1768 and a Gumstix Overo Air, coupled with a custom power supply.
+All custom software was written in C, with SQLite used for datalogging.
+This allows easy query of telemetry data by node or channel.
+
+SION is designed to work with extended CAN packet used in Scandal (with 29-bit header). 
+It also has code to translate Tritium's standard CAN packet (with 11-bit header) into Scandal packets, 
+which provides a uniform data format to work with.
+
+While SION is designed to handle Scandal protocol, it does not run a full copy of Scandal.
+SION is designed to not rely on any specific Scandal features, instead it is designed to transmit 29+64 bit packets of data from CAN to Wi-Fi.
+In theory, this allows SION to work with any CAN implementation in the wrld, and even understood them with modifications.
+However, it has not been tested for this purpose.
+
+## Features 
+* CAN to Wi-Fi transceiver
+* Data logging both on-board the solar car and in the chase vehicle.
+* Data logged in SQLite database, allowing easy query based on node and channel type.
+* Tritium to Scandal protocol converter
+* Electrical isolation to the CAN bus
+* Backup power to prevent corruption during data logging

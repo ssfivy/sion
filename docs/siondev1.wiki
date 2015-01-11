@@ -1,0 +1,2136 @@
+SION Development Progress, including engineering design decisions. 
+
+This is where I keep my design notes for SION, you're not meant to understand this. Feel free to browse stuff and ask me questions by email.
+
+This will most likely become larger and larger until it reached critical mass, and then transformed into the actual thesis text. As we know, in thesis you need to have some research, comparison, design decision etc. Convenient. In fact on the technical stuff this will most likely be much more complete than the thesis itself, albeit more cryptic.
+
+Some supplementary files and the code is not located here, check out the repos for them.
+
+These mainly cover my research up and until about late semester 2, 2010, when I switched from a Cortex-M3 based design to a gumstix overo one. Since this page is wayy to large to navigate, I'm putting new stuff in [[2010 SION Development Progress R2]]
+
+== Development Roadmap ==
+These are tentative and may fall back, change etc.
+
+=== Semester 1, 2010  ===
+
+*Get supervisors arranged 
+**<s>Approach Gernot</s> 
+**<s>Approach co-supervisor (Mac Chowdury, thesis coordinator)</s> 
+**<s>Write title, description</s>
+**<s>Get forms signed & submitted</s>
+**<s>Doublecheck that the topic has been accepted, etc etc.</s> It's listed!
+
+<s>
+*Implement sqlite in scanalysis 
+**Study up on canbridge2 and pleb
+** Create SQLite database standard for CAN log
+** Make a basic log importer, from past canlog to sqlite
+**Dissect scanalysis - FAILED 
+**Make a barebones scanalysis clone (receives data from canusb and write to text file) 
+**Implement sqlite on barebones clone (keep this for future use) 
+**Merge sqlite into scanalysis as a module
+</s>
+Fail, held back until later.
+
+<s>
+*Start in depth literature research (eg dump useful things on wiki) 
+**General information regarding protocol converters 
+**General information about dataloggers 
+**Research commercialy available products 
+**Research other solar cars telemetry systems
+</s> 
+
+* <s>Mess with the GPSBarometer. The GPS part. </s> Not relevant.
+
+*Finalized design decisions
+<s>
+**Architecture selection - ARM Cortex M3 NXP LPC1768FBD100, most likely using mbed as reference design
+**Synchronization method - With availability of filesystems this isn't such a huge issue anymore, can be pushed back.
+**SDCard access method - FAT libraries using SPI access, available online.
+**USB Interface - FTDI chip on UART0 allows serial interface and serial bootloading.
+**RTC - Only coin cell needed, higher accuracy can be obtained by adding temperature compensated rtc module.
+*** Note, RTC does not work! See lpc1768 erratasheet.
+** CAN interface - SN65HVD232 or ISO1050?
+*** ISO1050 samples back ordered to october 2010. Will go with SN65 unless things go wrong.
+** Power backup - Isolated module + Supercapacitors + SEPIC
+** Doublecheck SDCArd data corruption issue - surely everyone else in the world logging on sdcards have this issue? How do they do it?
+*** Looks like it IS a problem, and a delayed shutdown is the norm - in any case, few electronics are designed to be turned off by pulling the plug.
+*** Usually people use this nifty thing called a 'battery'.
+** Compilation Toolchain (may or may not work):
+*** Compiler - Codesourcery G++ ARM EABI linux advanced package.
+*** Programmer (software) - OpenOCD (like, the one everyone uses)
+*** Programmer (hardware) - OpenMoko Devboard (since NICTA has two)
+*** Bootloader - JTAG (or the magic chip, on mbed.)
+*** Debugger - JTAG
+** Wifi module selection - ConnectOne Nano WiReach (need breakout!!!) - Re-compare with the Microchip ZeroG module. - Figure out how to actually send data through this thing
+*** Microchip ZeroG only have +10dBm transmit power, OUTTTTT!
+*** Should the nano wireach be connected using RMII instead? and use the xport pro for the ethernet?
+**** RMII is out, since the IP stack has to be on the micro on that case. XPort Pro is used since I cant be arsed adding ethernet stack manually.
+*** Oh man, [http://www.digi.com/products/embeddedsolutions/embeddedmodules.jsp Digi] sells modules too? Now I need to re-compare to another vendor!
+**** Digi's modules are either too slow (230 kBps) or too expensive (includes ARM9 main processor, programmable). This goes for both wired and wireless.
+**Ethernet interface - PHY chip, socket with magnetics
+*** Or use xport pro and give the rmii to wifi? - Xport pro yes, rmii no.
+</s>
+
+*Still to be done:
+** Read application notes and put links for useful things here.
+** Literature review, EVERYTHING ON SOLAR CARS!
+*** Ask dave where the hell did he found those solarcar strategy papers.
+** Read all this:
+*** Art of Electronics, chapter 10-11
+*** http://www.national.com/mpf/LM/LM2984.html
+*** http://www.maxim-ic.com/datasheet/index.mvp/id/1334
+*** http://www.maxim-ic.com/app-notes/index.mvp/id/42
+
+*Design schematic
+** Check & copy reference design from the mbed / official ref design / app note?
+** <s> See if you can install uclinux on this for the hell of it. </s> Not gonna work, need more memory
+
+* Do some smartcdc stuff
+** Re-upload correct scandal_devices.h
+** Clean up docs
+** Remove lyrics and other nonsensical things.
+** Opensource!
+
+<s>
+* Recompile plan for the rest of the year when regulations come out. 
+</s> No change in plans!
+
+*<s> Holidays! </s>
+
+=== Semester 2, 2010 ===
+* Thesis project formally start
+** Funding becomes available yay
+* <s> NASC had finished, gather as much intelligence as we can. Blogs, tech descriptions, everything. </s>
+* Clean up SmartDCDC
+** Order SmartDCDC Module, solder, test
+** Replace INA214 since it saturates, re-calibrate.
+* Develop as per the stages below
+* Rage as some stuff doesn't work and needs fixing in hardware
+* Sends out revised hardware, build, test again
+* Thesis conference
+* Thesis presentation
+* Finish!
+
+TARGET: 
+* MINIMUM: FINISH STAGE 1+2 THIS SEMESTER, SINCE LSC IS IN SUMMER
+* ENSURE REST OF HARDWARE STABLE ENOUGH, NO HARDWARE WORK IN S2
+
+* Stage 0: Set up BATTLESTATIONS!
+** Week 1-3
+** Consult design with supervisor - incl compilation toolchain (ASAP)
+** Purchase components incl programmer/debugger (ASAP)
+** Set up development environment + toolchain - during leadtime
+** Practice using a debugger & tracing on computer - during leadtime
+** Practice using svn & Doxygen for version control & documentation - during leadtime
+** Internal program architecture (thinking of bus arch.) - during leadtime
+** Pick a text editor, practice, become good and stick to it. Use it exclusively. - during leadtime
+** Learn 2 scanalysis. - during leadtime
+** Study the LPC1768 architecture and innards; timers, registers, ports etc.  - during leadtime
+** if nothing else look ahead and do all the 'design architecture' stuff. - during leadtime
+** ''' Inspect the supposed problem with ping and dropped packets on Sunswift 4 '''
+
+Shoooopping List:
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+|Shop
+|Code
+|Name
+|Price
+|Note
+|URL
+|-
+|SparkFun / NGX
+|DEV-09931 / none
+|NGX Blueboard-LPC1768-H
+|USD 49.95 / 1500 Rupees
+|Cortex M3 dev board. Both stores out of stock as of today, might have to jump straight into custom pcb: [[User:Irving|Irving]] 01:09, 27 July 2010 (EST) . FFFFFFFUUUUUUUUUUUUUUUUUKKKKKKKKKKKKKKKKK
+|[http://shop.ngxtechnologies.com/product_info.php?products_id=65 ngx], [http://www.sparkfun.com/commerce/product_info.php?products_id=9931 sparkfun]
+|-
+|Mouser
+|
+|ConnectOne Nano WiReach
+|
+|
+|
+|-
+|
+|
+|Connector
+|
+|for the Nano Wireach.
+|
+|-
+|
+|
+|UFL-(RP?)SMA cable
+|
+|for the Nano Wireach.
+|
+|-
+|
+|
+|Jumper wires
+|
+|for breadboarding?
+|
+|}
+
+
+<s>
+* When stuff arrives
+** Solder PCBs (?)
+** Test Programmer
+** Blink LEDs
+** Learn JTAG debugging
+
+* Serial connection via USB (buy FTDI cable?)
+* CAN protocol tx rx (debug thru USB, raw not canusb)
+* Wifi module (USB - Wifi - Access Point?)
+
+
+
+* Stage 1: replicate PLEB functionaly (Critical for lsc)
+** Week 4-9 incl. mid break
+** USB Serial data connection (for debugging)
+** Scandal protocol interface (to USB)
+*** Test with 1MBit/s rate as well.
+** Wireless module interface (to USB)
+** Control-side interface (Wifi - Scanalysis) 
+** Wireless connection to control (USB-Wifi-Scanalysis)
+** Wireless sending (USB-Wifi-Scanalysis)
+** Protocol Conversion (CAN-Wifi-Scanalysis)
+
+* Stage 2: add logging (critical for lsc)
+** Week 10-13
+** FatFS interface implementation (check proper fs by reading on pc)
+** Standardize plaintext log specification
+** All interfaces logging (check logged data on pc)
+** Test handling of full SD card (delete older files)
+** SDCard speed testing
+** Importing to Scanalysis
+
+* Stage 2.5 - Moving from devboard to proper designed board
+** Design PCB
+** Send it off for manufacture
+</s>
+
+Need some rewriting due to using devboard.
+
+* Stage 3: Synchronization
+** Summer (if no luck with jobs)
+** Make SQLite log specification
+** SQLite module for Scanalysis (to replace its default plaintext log)
+*** Manual text file importer, exporter, etc.
+** Research & Design sync operation
+***Information regarding synchronization, diff, concurrent read/write, file locking, atomic commit, [http://en.wikipedia.org/wiki/Concurrency_control Concurrency control]. 
+***SQLite documentation would have some useful info. 
+** Implement entry fetching from SDCard
+** Implement sync control algorithm
+** Implement full synchro operation
+
+* Stage 4: protocol translation
+** Shouldnt take that long.
+** Tritium Interface
+** logging update
+** testing w/ CAN-CAN & CAN-Wifi
+
+* Stage 5: Timestamping
+** To be planned, see if anything develops.
+
+* Stage 6: TI Chronos watch
+** Shouldn't take that long.
+** Figure out sending stuff
+** Do it
+
+=== Summer Holidays 2010 - 2011 ===
+* Industrial training (Hopefully!!)
+* Land Speed Record, must be working.
+
+=== Semester 1, 2011 ===
+* FINISH DOCS AND THESIS
+* WORK ON REGEN SUSPENSION
+
+* Test power consumption on Echidna (that nicta msp coloumb counter thingy) - on several points like ~100, ~70, ~40, ~12, ~8 MHz.
+** See if this is competitive enough with the MSP.
+* Finish Implementing all functionality
+* Write the paper
+* Write documentation / open source
+* Hunt for jobs
+* Lodge PR paperworks
+* More Testing
+* Chillin since everything works flawlessly / Inevitable meeting with Murphy's Law :P -> Go to sleep, carson
+* Ask for extension on thesis.
+
+=== Winter Holidays ===
+* Mock WSC, final real world testing
+* Update thesis with results
+* Submit thesis
+
+=== After Graduation & WSC ===
+* Get permanent residency
+* Get a job
+* Opensource SION 1 month before WSC starts
+* Chill bangin during the trip to WSC
+* Drink lots of pauls iced coffee in NT
+* Show off TI Cronos watch to other teams, acting smug like an elitist
+* win WSC outright
+* swap shirts
+* receive technical innovation award on stage
+
+now what??
+
+==Introduction==
+
+=== Summary ===
+
+*Topic 2109
+*Area: Student's own topic
+*Supervisors: Gernot Heiser, Mahiuddin Chowdury
+*Title of Thesis Topic: [http://www.phdcomics.com/comics/archive.php?comicid=718 Advanced Data Communications for Sunswift IV]
+*Brief Summary:  
+During a solar car race, it is very important to be able to get data on the solar car performance while the entire fleet is running. This is currently done using a PLEB embedded computer which converts telemetry data into ethernet for transmission via an access point to the support cars. The team currently owns one device, but are unable to obtain a backup unit as it is very old and not available anymore.
+
+The project aims to design a new device which can perform the duties of the PLEB. Furthermore, it will act as a data logging device in case of problems with the wireless transmission. The logs can then be synchronized with the support cars without having to interrupt the race. Two devices will be created, with one acting as backup to the other.
+
+=== Background ===
+
+*PLEB is 10 yes old, we have no backup for it, if it fails we're fsckd. (DEC StrongARM processor anyone?) 
+*CANView WLAN doesnt work, and if Dave cant get it working neither will I. 
+*PLEB2 exists but none of us knows how to make it work. Capability of getting more than one unit questionable.
+*Hence, a new device must be created to replace PLEB.
+*It shall be named SION for Sunswift Ivy Observer Node
+
+=== Goals & Implementations ===
+===Primary===
+Core functionality, must be rock solid
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+|Functionality needed
+|Provided by
+|-
+|CAN interface (two ways)
+|2x CAN interface in micro, each capable of speed up to 1 Mbit/s
+|-
+|Wireless interface (two ways)
+|Wireless Module, eg Connectone
+|-
+|Transmit information to & from CAN network
+|(can_send(wifi_receive()))
+|-
+|Record all communication on all interfaces above
+|SD Card, RAM buffer?
+|-
+|Synchronize log from local to control
+|(int sync())
+|}
+
+===Secondary===
+Extra functionality, it's ok if it doesnt work that well.
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+|Ethernet interface (two ways?)
+|RMII in micro, external phy chip & magnetics
+|-
+|USB interface (two ways?)
+|in micro (doublecheck is it OTG?)
+|-
+|Capability of expansion / adding extra features
+|Broken out SPI + UARTs + Power so you can plug in expansion boards (eg CC430, serial, motorola HSDPA, even another micro doing some stuff eg DSP / Overo playing Quake3)
+|-
+|Sends message from itself through any interface
+|
+|-
+|Convert to & from Scandal & Tritium
+|(int convert(), M12 connector footprint for commercialization?)
+They can make their own cables no?
+|-
+|Solve the timestamping problem
+|
+|-
+|Turn on / off individual interface
+|
+|-
+|Maintenance-free operation
+|
+|-
+|Cheap, small, light
+|
+|-
+|Mass production / reflow compatible
+|
+|-
+|Change Wavesculptor active motor, configuration
+|
+|-
+|Hardware watchdog
+|
+|-
+|Voltage supervisor / brownout detector
+|
+|-
+|Real time Clock
+|
+|-
+|Electrical Insulation
+|
+|-
+|Power measurement
+|
+|-
+|Handle large amount of data, eg digital video, suspension sensor, digital audio
+|See above for broken out SPI
+|-
+| Win eng. aus. thesis awards, CSIRO tech awards
+|
+|}
+
+=== <s>Desired features / modules</s> ===
+Deprecated, see table above. Kept for reasoning behind design decisions.
+(subject to discussion)
+
+* Log every CAN message up to 1 Mbps
+** Boot time is critical here. Things that took bloody ages to boot will miss quite a bunch of packets.
+
+* Output stream every CAN message up to 1 Mbps
+** out from USB
+** out from Wifi
+** out from Ethernet
+** out from CC430
+
+* Pass commands from outside to CAN
+** Through all three interfaces?
+** This also needs to be logged!
+
+* Send its own messages either to control car, CAN, or both. (also log it)
+** voltage
+** current consumption (per output device? wifi, bt, ftdi, xport?)
+** RTC Clock incorrect, correcting.
+** SD Card almost full, begin purging old data
+** and more
+
+* <s>See if implementing an auto termination system is possible, eg automatically place a 120R resistor across CANH & CANL when one side is unplugged.</s>
+** With dual CAN interface this is a given.
+
+* Being able to turn on/off each output port
+
+* Hardware watchdog & voltage supervisor
+
+* RTC + battery backup
+
+* Complete electrical isolation (except wifi antenna? isolate the wifly module? ethernet is isolated)
+** TO BE DISCUSSED. The thing we dont want to broke is the SDCard and any wired interface (ethernet, usb). Getting the cpu fried may / may not be acceptable.
+
+* Translate Scandal to Tritium CAN protocol
+
+* Change  Wavesculptor General Configuration - Rotating Mass ??? (Email daves / tritium)
+
+<s>
+* Hard mode: Store all nodes' hex files in sdcard, which allows for solarcar self-programming (even better then remote programming!)
+** New images can be compiled in control and sent to SION over scanalysis / wifi
+*** or even developed and compiled from other supportcar if we have fleet wifi. (Lunatic Mode)
+** Except smartdcdc, which is currently setup to shut down 12V unless its msp says otherwise. Need reconfiguring.
+*** yes, even SION itself can be reprogrammed this way if it has a bootloader (Extra mode)
+**** Can the bootloader be updated from say, wifi? Or loaded from say, steeringwheel? (Phantasm mode) 
+</s> 
+
+<s>
+*Put a physical switch on SION to activate Access Point mode
+** which will run a webserver & DHCP server on the wifi module.
+** that you can connect to from say, iphone
+** and will display a page with solar car statistics using javascript
+*** Someone else should write the javascript, Im not gonna do it :P
+**Imagine telling passerbys with smartphones that they can view statistics on their phones! 
+</s> 
+
+<s>
+SPI / UART port budget (tobe revised):
+*SPI1
+**RTC (startup/shutdown only)
+**MCP2515
+*SPI2
+**SDCard
+**SDCard the 2nd (for raid1 mirror / in case sdcard flash dies)
+*UART3: multiplex
+**Wifi module (while driving)
+**FTDI (bench debug only)
+*** FT2332? has two UART interfaces, connect one to micro for debugging the micro, the other to wifi module for configuring the module? Can it do passthrough?
+*SPI4:
+**RS485 - xPort Pro
+**CC430 / CC1101
+**3G Modem
+**VGA Out
+total needed: lots (nuoh!)
+</s> Not needed anymore with ARM.
+
+=== Extra Thesis Ideas ===
+<s>
+*HUD display on solarcars using a picoprojector 
+**with telemetry data overlay 
+**somehow combine this with rearvision? 
+**mount it so you can still see the projected image on the canopy when it is open. Then play movies or quake 3 on it.</s>
+*** Just make another device if we want to do this
+
+*<s>Use a gumstix to record radio chatter &amp; live view (instead of a x86 server) </s>
+** Just make a program to do this on a laptop, infinitely more serviceable
+
+* <s>Expand SION into Sunswift Ivy Obervation Network - set up proper inter car wireless communication</s>
+** Regen suspension is more important
+
+* <s>Autopilot capabilities - preload strategy result, have it output cruise control values</s> Dangerous, also driver need to do something
+
+* Simulation-assisted tracking - preload array simulation result, have it output initial setpoints. I WANT to see this happen.
+
+* <s>Satellite modem in SION</s> (dohohohoho, yeah right. :P)
+
+== In-depth Research ==
+*Surely we should check if there are products out there that satisfy our requirement. Failing that, there might be some information from existing products that can be beneficial to the project.
+* Keep in mind, the Scandal protocol used by UNSW SRT is a custom written protocol which is not found anywhere else in the world (until people start stealing our GPL'd code, maybe.)
+* Might need to move this to its own page eventually.
+
+* IT in F1 racing: http://www.computerworld.com.au/article/339594/how_do_they_do_it_/?fp=4&fpid=2359
+
+=== Data Communication Requirements in Solar Racing ===
+There should be a section where the general idea is outlines. Quote a lot of explanation from Speed of light & Daves thesis. Might want to quote the F1 racing above. Also explain the requirements from protocol translation, interrupted comms (hey control need to refuel), which requires data logging. Explain the design decision of integrated device like SION as opposed to separate logging node (can do synch). Explain advantages of synch (no need to poke around removing cover, swapping SD cards, ends up with un-logged data, etc.) Go on overview regarding available devices and why they all suck compared to SION (hey this is what all papers say.) 
+
+===Previous device: [[2003_PLEBcan]]===
+* Device overview: http://ertos.nicta.com.au/hardware/pleb/
+* Detailed design paper: ftp://ftp.cse.unsw.edu.au/pub/doc/papers/UNSW/0105.pdf
+
+* Why it doesnt use MCP2510 / 2515, using some phillips controller instead?
+** Hypothesis: Because 2510 is too buggy and 2515 hasn't come out yet?
+*** Very likely to be the case, MiniNG thesis specifies that 2515 just come out that year and there's no time to adapt stuff.
+** [[2005 PLEB2can]] uses MCP2515, but it was never finished
+
+*Whats with canbridge 1,2,3, stories behind them?
+** Canbridge was original.
+** Canbridge2 was revision. Now uses UDP instead of TCP (reconfirm plz). Both by Luke Macpherson
+** Canbridge3 was unknown. Andy dont know anything about it. Will not be used, work will be based of the proven working canbridge2.
+
+=== Other solar car telemetry systems ===
+
+How to write:
+* Do not compare systems! Compare transmission systems!
+* Remember, the focus isn't in the ''data gathering'' part, it's on the ''transmission'' part!
+
+Shortlisted:
+* [http://www.mae.ntu.edu.sg/AboutMAE/NewsAndEvents/Documents/Event/NE2010/TelemetrySystem2010/index.html NTU Singapore, 2009] - National Instruments datalogger + wireless 
+** Fluke Hydra Data Logger + wireless (Sunswift pre-Scandal) - An older and more ghetto version of the above, basically.
+
+* Michigan's systems are provided by [http://www.motorola.com/staticfiles/Business/Products/Wireless%20Broadband%20Networks/Intelligent%20Transportation%20Systems/Documents/_Static%20files/Mesh%20Solar%20Car_CS.pdf?localeId=33 Motorola]
+
+* Twin Multimeters + Radios (Kormilda, sCHoooler 1996)
+
+* Nuon Strategy Paper?
+
+Not notable:
+* also used in [http://ieeexplore.ieee.org/search/freesrchabstract.jsp?tp=&arnumber=5445860&queryText%3DApplication+of+Data+Acquisition+and+Telemetry+System+into+a+Solar+Vehicle%26openedRefinements%3D*%26searchField%3DSearch+All cpdm malaysia], same thing as NTU, but this car's eeeew
+* [[Strategy#Reference]] - 1996 honda uses custom radio thingy. Waaay better solutions are available now.... should.
+* Aurora uses wifi for transmission. Casual comment, may or may not be true. Doesn't matter.
+* Guessing other teams won't do much good unless sources are available. Same with guessing past teams.
+
+===Commercially available products ===
+
+* CAN protocol translators:
+**[www.rmcan.com RMCAN] make a CAN-Wifi product, but not even Dave can get it working. Also it seems we're the first <s>suckers</s> customers. However the concept is fairly nice - a console access for setup should be available. They also cost $1500 each. No logging.
+**[http://www.tritium.com.au/products/TRI82/index.html Tritium made a CAN-Ethernet bridge] too! Stop stealing my project! No logging as well tho.
+** http://www.kvaser.com/en/products/can/wireless.html
+** http://www.netburner.com/products/can_to_ethernet.html
+** http://www.systec-electronic.com/html/index.pl/en_product_can_ethernet_gateway
+** http://www.crosstheroadelectronics.com/2CAN.htm
+** http://www.proconx.com/xnut105/
+
+* CAN data loggers:
+** <s>http://www.kvaser.com/prod/hardware/memorator.htm - lol 1GB sd card size limit, LOL $1600</s>
+*** They actually got some (seemingly) nice products: http://www.kvaser.com/en/products/can/data-logger.html
+** http://www.campbellsci.com/sdm-can - lol datalogger interface
+** http://www.phytec.com/products/can/can-software-development-tools/pcantrace.html - lol x86 based with size limit
+** http://www.hedonline.com/data.htm - lol no feature
+
+Those solutions are mutually exclusive however, and are not what we want.
+
+Possible way this will be written in thesis:
+
+...Several solutions are commercially available , such as [2],[3],[4],[5] for CAN to wifi / ethernet, and [6],[7],[8],[9] for CAN data loggers. However, none of them has protocol translation && data logging in a single package, much less synchronization. This shows that the author is making an innovative product that kicks ass a lot.
+
+==Technical Design Decisions - Hardware==
+some stuff needs to be ported to software
+=== Architecture selections  ===
+
+*This thing needs to be intelligent and programmable, so that means something with processors 
+*x86 sucks power, so no. Atom is overkill and nobody around here knows how to deal with it. 
+*ARM would be a good choice.
+* Explanation on all the different ARM stuff: [http://embdev.net/articles/ARM]
+* General industry overview: [http://www.embedded.com/design/222100259]
+* Discussions on different micro architectures: [http://stackoverflow.com/questions/2137153/does-it-matter-which-microcontroller-to-use-for-1st-time-embed-system-programmer]
+* [http://dev.emcelettronica.com/selection-guide-low-cost-tools-cortex-m3 Selection Guide] which I found only after selecting my micro. GRAGH.
+
+so from the ARM camp 
+
+*Two choices with ARM: Bare metal coding or full blown embedded linux? 
+* If linux is chosen then it has to be an of the shelf product, as designing a custom linux board would be a thesis by itself.
+*Some small sized arm boards: 
+**http://hackaday.com/2009/11/21/review-mbed-nxp-lpc1768-microcontroller/
+
+*Alternative would be using the high end MSP430s 
+**AVRs, PICs are ruled out of the picture, as being similar microprocessors they have similar capabilities to the MSP430s. In that case it would be beneficial to stick with one family of microprocessors. Same with other more obscure micros.
+
+* <s>'''Unknown Factor''' : Does supervisor care? </s> No.
+
+*Comparison below.
+
+'''STUFF THAT MATTERS''' 
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+| Competitors! 
+| ARM7 Micro 
+| Embedded Linux eg OpenEmbedded 
+| MSP430, perhaps the 5xx series
+|-
+| Potential devices 
+| NXP [http://www.nxp.com/pip/LPC2468_4.html LPC2468FBD208] (ethernet, can, sdcard, usb) 
+| Gumstix + OE 
+| TI [http://focus.ti.com/docs/prod/folders/print/msp430f5438.html MSP430F5438]
+|-
+| Primary Advantage 
+| Integrated CAN, ethernet, usb, sdcard interface, even RTC 
+| Flexibility of linux, software most similar to PLEB 
+| Simple, familiar architecture
+|-
+| Most challenging part 
+| Figuring out how ARM works, canbridge2 
+| Memory interface, Interfacing with SPI / MCP2515, reading RTC, speeding up boot, wifi speed capped 
+| SD Card interface, SQLite, canbridge2 unix standard libraries
+|-
+| SQLite onboard logging 
+| Maybe not? 
+| Yes 
+| Most likely not, see [http://www.mail-archive.com/sqlite-users@sqlite.org/msg33736.html]
+|-
+| Boot time 
+| Unknown 
+| Bloody ages - data will be missed! 
+| Short
+|-
+| Can be maintained / additional units made in 5-10 yrs? 
+| Likely - arm7 is very widespread. 
+| Unlikely - considering how older gumstix boards has been discontinued. Then again OMAP is very widespread. 
+| Maybe - these devices are very new.
+|-
+| approx. cost comparison, component only 
+| US$18 (Digikey)
+| US$149 (Gumstix.com)
+| US$13 (Digikey)
+|}
+
+'''Stuff that doesn't really matter''' 
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+| Competitors! 
+| ARM7 Micro 
+| Embedded Linux eg OpenEmbedded 
+| MSP430, perhaps the 5xx series
+|-
+| Price (hell yeah) 
+| Medium 
+| Expensive 
+| Cheap (yay samples)
+|-
+| Idea originates from 
+| Dave 
+| Irving 
+| Etienne
+|-
+| Difficulty (code) 
+| Hard 
+| Hard Bastard, memory interface 
+| Hard
+|-
+| Difficulty (hardware) 
+| Medium-hard 
+| Hard (not looking forward to soldering the gumstix connectors) 
+| Medium-hard
+|-
+| Built in / easy to interface devices 
+| All?? 
+| SDCard, maybe FTDI and ethernet 
+| CAN, FTDI
+|-
+| Interface that is likely going to make you cry blood 
+| All?? 
+| Memory, or jamming everything into a single SPI 
+| SDCard, maybe xport, wifly
+|-
+| Flexibility of a full-fledged OS 
+| No 
+| Yes 
+| No
+|-
+| Porting / Redeveloping canbridge2 
+| Yes 
+| No 
+| Yes
+|-
+| 1 Mbit/s throughput on all important data paths 
+| Maybe? 
+| Yes 
+| Seems possible w/ SPI, see [http://www.freelabs.com/~whitis/sd_card/]
+|-
+| Who can I bug if I got stuck 
+| None really. 
+| Etienne, hopefully the entire 6th floor of nicta 
+| Most people in elec, nicta
+|-
+| Learning curve 
+| Unknown 
+| Medium-high - documentation here and there. 
+| Medium-high - some parts should be familiar
+|-
+| Suitability for the task at hand 
+| Kinda overkill 
+| Way Overkill 
+| Suitable
+|-
+| Experience with coding / development environment 
+| Nonexistent 
+| Medium 
+| Medium-high
+|-
+| Onboard Compilation of code 
+| No 
+| Maybe? 
+| No
+|-
+| Real time operations 
+| Maybe 
+| Maybe 
+| Maybe
+|-
+| Commercialization potential 
+| Low-medium (as part of sunswift telemetry package) 
+| Low (if nicta is interested in any way) 
+| Low-medium (same as arm)
+|-
+| Attaching a HUD, or other video output 
+| Yes 
+| Yes (DVI-D) 
+| Yes ([http://www.sparkfun.com/commerce/product_info.php?products_id=8541 Picaso], max7456, or analog devices video encoder)
+|-
+| Attaching a camera, or other video input 
+| Maybe not? 
+| Yes 
+| No (Not enough processing power)
+|-
+| Chip interface with the TI Cronos watch 
+| Yes 
+| Yes 
+| Yes
+|-
+| Being able to do your thesis presentation from your own thesis project 
+| Maybe yes 
+| YES 
+| Maybe yes
+|-
+| Being able to show nuna &amp; michigan who's boss with ioquake3, duke3d 
+| No 
+| HELL YES 
+| No&nbsp;:(
+|}
+
+One last design to consider would be hooking up an MCP2515 to the WiFly module. Due to WiFly brimming with features it _might_ be possible to hook it up directly to a MCP2515, effectively creating a dumb node that streams all data through WiFi. Logging can be done in another module. Due to the simplicity of this design a board should be designed to test this configuration if deemed promising, even if one of the above architectures has been chosen. 
+
+*Last checked the SPI interface on wifly isnt working yet, so probably no. Hacking the proprietary configs of the embedded wireless boards would be waaay difficult too, so I think this should be scrapped.
+
+All of the above boils down to the requirements. I want a device that can log stuff, transmit stuff and synchronize stuff. 
+
+*ARM: 
+**A lot of peripherals are already integrated. The main external additions are Wifi... only. 
+**The author have next to no ARM programming experience, and not many people around to learn from. 
+***This is not a big problem since the author is badass. 
+**No ARM programmers are around, compared with the abundance of MSP programmers and no programmers required for linux 
+***Also not a problem since sunswift has money. 
+** No SQLite
+** No POSIX & Canbridge2
+** Dont know anything about SD/MMC interface 
+
+*Lunix: 
+**Gumstix only have 1 of SPI, UART, I2C, USB and MMC breaked out, and seems to rely on an extended memory bus for anything extra. 
+***Which the author predicts is going to be a massive headache to program. Especially the kernel drivers for those. ARGH.
+*** Technically this is enough if one were to only attach wifi + CAN, but author has standards.
+***Keep in mind that some gumstix functions (eg DSP) seems to have next to none users (eg pixhawx was the first to get dsp working... they're a student project. You know how shoddy those kinda people are... :P) 
+***Beagleboard is too big, contains unnecessary features while lacking some essentials such as ethernet. 
+***Other less common linux boards aren't considered due to perceived lack of documentation, tutorials and support compared to the two alternatives, while still facing similar challenges.
+** Linux has SQlite, making data synchronization very easy.
+** Linux also has the full posix stdlib, making adapting canbridge2 trivial.
+** Linux has proper filesystem interface, making data backup trivial.
+** These boards are waaay expensive compared to the other two.
+
+*MSP: 
+**4 UART/SPI total is a bit of a bottleneck, considering the number of devices it must interface with. 
+***Similarly, interfacing with so many interfaces might give the MSP quite a load. It is unknown if it will be able to handle the load.
+** No SQLite
+** No POSIX & Canbridge2
+
+'''IT IS DECIDED!''' 
+* I will use ARM bare metal coding for this! 
+** The primary advantage is the number of interfaces an ARM has.
+** SQLite, POSIX and filesystem interface is not a linux advantage, but a tradeoff with kernel drivers, memory interface, and boot time.
+** MSP is like ARM without its features.
+* Next step is choosing the right micro and learning how to do stuff with it.
+
+=== Operating Systems ===
+taken from wikipedia etc. To be looked into later. 
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+| Competitors!
+| Bare metal coding
+| Linux (OE / Angstrom)
+| L4 microkernel (OE / NICTA)
+| Other embedded OS
+|-
+| Headache
+| High
+| High
+| High
+| Very High
+|-
+|}
+
+Bare metal coding is used as this will be a custom ARM implementation, and porting Linux / anny other OS to a custom board is already a thesis topic on its own. Moreover it does not depend on external vendor which means it is more likely to work in case we want to program SION again 10 years into the future (provided the chip is still on sale). Open source libraries and example codes will be used to provide some basic functionality, such as FAT filesystem.
+
+=== Device Selection  ===
+
+Now that ARM bare metal coding is selected, we need to choose the actual device. 
+
+* Alternatives should be investigated.
+** NXP: DONE
+** STM: [http://www.st.com/mcu/stonline/img/STM32F10x_value_productline.jpg Don't have anything with both ethernet or SD]. Also less flash for the same spec. Website is annoying too. (Main reason would be I already researched LPC a lot. Also devboards for LPC is more available.)
+** TI: Same with STM
+** Atmel: ARM9 that is like Cortex A8 (with linux goodies, too complex), or cortex M3 which is still in development. Also website pisses me off.
+** Microchip: Doesnt do ARM, and PIC is totally foreign around here.
+
+* Interesting: http://coremark.org/benchmark/index.php?pg=benchmark
+
+* PLEB has 2 hour buffers (wut) - is it really? Review codebase, see if it can be implemented.
+** Need to investigate the necessity for additional RAM if any, and by extension the requirement for an external memory bus.
+*** No, this stuff is already difficult enough. Focus on maximizing SDcard write rate.
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+| Competitors! 
+| NXP [http://www.nxp.com/pip/LPC2468_4.html LPC2468FBD208] 
+| NXP [http://www.nxp.com/pip/LPC2387_3.html LPC2387] 
+| [http://ics.nxp.com/products/lpc1000/lpc17xx/~LPC1768/#LPC1768 NXP LPC1768] in mbed devboard
+|-
+| Specs 
+| colspan = "2" | ARM7TDMI-S 72 MHz
+| ARM Cortex M3 100 MHz
+|-
+| Integrated features 
+| 2xCAN, ethernet, .... SD/MMC, external memory bus  
+| 2xCAN, ethernet, .... SD/MMC 
+| 2xCAN, ethernet, .... split APB bus, multilayer ahb matrix, etc see [http://lrd.library.unsw.edu.au/F/QX9M2VM78VRJUF9VUDSFMGSEGJYI196HIKXGFTKIMR5BDG5CH9-45758?func=full-set-set&set_number=005474&set_entry=000002&format=999] and [http://www.nxp.com/documents/application_note/AN10878.pdf]
+|-
+| Primary Advantage 
+| All interface included natively except wifi. <s>Seems to be the only micro on the market to have both CAN and SD/MMC. </s>
+| All interface included natively except wifi.
+| 
+*Cheap existing devboard - mbed microcontroller, means no pcb design needed for prototyping 
+*Faster, more powerful
+*mbed forum = an entire community around lpc1768, albeit with custom library
+
+|-
+| Disadvantage 
+| 
+*need to build boards to play with 
+*208 pins, fffuuuu 
+| 
+*need to build boards to play with 
+
+| 
+*Pinouts does not seem to have any conflict, see [http://mbed.org/nxp/lpc1768/quick-reference/]
+*Lacks proper SD interface. 
+*Does not have JTAG on mbed - serial bootloading only with their fat memory thingy
+*mbed libraries are closed source(for now) and therefore should not be used.
+*mbed only breaks out one CAN channel, so protocol translation cant be developed here anyway
+*still need custom pcb for chosen wifi module.
+
+|-
+| Price per chip, from digikey
+| US$ 18.7
+| US$ 13.87
+| US$ 11.48
+|-
+| Other Notes 
+| colspan = "2" | *SD card interface confirmed as SDHC compatible - check datasheet, it says v2.11 compatible. &gt;2 = SDHC ok!
+| 
+*mbed itself isnt going to be used on the final product - only the lpc. 
+*ethernet chip and flash chip unknown make.
+
+|-
+| GNU ARM compatibility 
+| 
+| 
+| [http://mbed.org/forum/mbed/topic/272/?page=1 Someone reported success] compiling freeRTOS for mbed using gnu arm(?)
+|}
+
+
+
+* Refer to technical design decisions on SDCard, below. All the guides out there on the interwebs seems to interface with SDCards using SPI and the author hasn't been able to find any guide on SD protocol.
+** Update: I did find a few but it scares the crap out of me - SPI is simpler and has an official app note.
+* In this scenario, SPI would be used to interface with SD Card instead of SD protocol, since much less effort is needed.
+* The ARM7 devices' main advantage is the availability of proper SDCard interface.
+* With its main advantage gone the ARM cortex would win using its higher speed, features, etc
+* Chosen device is LPC1768.
+* Two concerns remained:
+** Whether the SPI interface can handle the required speed for SD card access. However speed also seems to be affected by make and brand of the SD cards themselves.
+*** [http://elm-chan.org/fsw/ff/img/rwtest2.png Yes.]
+** <s>Whether the mbed is helpful for development instead of hindrance, due to its nonstandard(?) programming method. Moreover, the recommended way to program an mbed (online IDE/compiler w/ mbed libraries) will not be used, instead opting for local compilation. This is to keep everything similar to the final device as possible. Also since author is hardcore. And no way to compile thru internets when we're in the middle of the desert.</s> Irrelevant since I found the blueboard.
+
+[http://ics.nxp.com/support/documents/microcontrollers/?scope=LPC17xx Application Notes]
+
+=== Development Boards ===
+Cheap ones:
+
+[http://www.mbed.org/ mbed] - officially supported by ARM
+* + Relatively cheap
+* + Has ethernet PHY
+* - No JTAG or UART0, proprietary usb mass storage device programming only, feature used only by lack of choice.
+* - Online Compiler feature unused
+* - mbed Library feature unused
+* [http://www.element-14.com/community/view-event.jspa?event=2604#comment-2645] [http://mbed.org/handbook/mbed-Compiler] The online compiler uses rvct (THE official ARM compiler) on the back end, with the mbed library coded specifically with that compiler.
+In the end, Im not going to use the majority of the mbed's features, so there isnt much reason to use this isnt it? (Except I got one free courtesy of element14)
+
+[http://shop.ngxtechnologies.com/product_info.php?cPath=21&products_id=65 Blueboard] - SUPER CHEAP from india
+* + CHEAP
+* + Has JTAG
+* - No ethernet PHY
+* [http://hackaday.com/2010/03/17/arm-cortex-m3-prototyping-on-a-budget/ comments]
+Just found out about this tonight, looks like what I need.
+
+*Olimex has a [http://www.olimex.com/dev/lpc-1766stk.html relatively cheap devboard] too, though it uses 1766. EUR110.95. 
+** "IMPORTANT! Our summer vacation is 1-31 of August. All development board orders confirmed after July 29 will be shipped after September 1st."
+** [http://www.dontronics-shop.com/lpc-1766stk-development-prototype-board.html Dontronics] have some in stock though. AUD183, boo hoo.
+
+Expensive ones:
+* Keil - AUD432, mouser.
+* Code Red - USD330, code red
+* IAR - USD200, future electronics
+* [http://www.lpctools.com/evaluationboardskitsforlpc17xx.aspx Pick your poison.]
+
+[http://tenuki.fr/nio101/?page_id=188 A small blog post]
+
+=== Wireless communication  ===
+
+*The presence of netgear access point can be questioned. 
+*Wireless modules are available at a fraction of the weight. 
+*Wireless transmit power rating need to be carefully considered. 
+*Ethernet port should be included for flexibility & backwards compatibility
+*MUST have external antenne connector for eventual connection to benelec antenna
+*Bare wifi chipsets are waaay too advanced for this application.
+
+*More wifi modules: 
+**http://www.microchip.com/wwwproducts/Devices.aspx?dDocName=en548014 ZeroG module, bought by microchip. 
+**http://www.connectone.com/products.asp?did=73&amp;pid=80 - 16 dbm, spi/uart/serial/usb, ufl connector, 2 post on sparkfun forums suggests this as wifly alternative 
+**http://www.embeddedworks.net/pcategory.php?mn=wlan 
+**http://www.lairdtech.com/Products/Wireless-M2M-and-Telematics-Solutions/WiFi-Radio-Modules/ 
+**http://www.tdc.co.uk/index.php?key=mt800swm
+
+*A good read: http://bec-systems.com/web/content/view/75/9/
+*http://mbed.org/forum/mbed/topic/287/?page=1#comment-3912 Discussing mbed wifi.
+* [http://www.embeddedrelated.com/groups/msp430/show/43569.php Some discussion on wifi]
+
+*[http://old.nabble.com/Overo-wifi-speed-and-WPA2-connection-issue-td27196711.html Gumstix embedded wifi modules have hardware issues on them, max throughput is only ~115 kbps]
+
+*Some idiot on sparkfun rages at wifly and claims of only getting ~200 kbps, out of the claimed several Mbps. 
+**connectone claims UART performance of up to 3 Mbps and SPI of up to 5-6Mbps
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+| Competitors! 
+| Wireless Access Point 
+| Embedded wifi modules 
+| 3G Modem 
+| [[Bluey|Bluetooth]] 
+| XBee Pro
+|-
+| Devices! 
+| Netgear WG-102? 
+| Roving Networks WiFly, Lantronics Matchport, ConnectOne Nano WiReach 
+| [http://www.motorola.com/Business/US-EN/Business+Product+and+Services/M2M+Wireless+Modules/H24+HSPA_US-EN Motorola H24 HSPA module]
+| Sparkfun BlueSMIRF? etc? 
+| [http://www.sparkfun.com/commerce/product_info.php?products_id=8768 XBee Pro 50mW Series 2.5 RPSMA]
+|-
+| Cost
+| US$120 (newegg)
+| US$60-130 (varied)
+| ?????, probably expensive tho
+| US$70 (sparkfun)
+| US$50 (sparkfun)
+|-
+| Advantages 
+| Easy to swap 
+| Compact, neat, low power 
+| internet connection, fast
+| simple 
+| simple, no protocol handshake stuff, just plain data stream
+|-
+| Disadvantages 
+| Bulky, entire chassis wired to GND 
+| tx power 
+| expensive, urban area only (eg useless 97% of the time)
+| Data Rate, tx power? 
+| Data Rate
+|-
+| Interface to / in SION 
+| Ethernet 
+| UART 
+| UART
+| uart 
+| uart?
+|-
+| Tx power (dBm) 
+| 18 
+| &nbsp;???? 
+| &nbsp;???? 
+| &nbsp;???? 
+| 17
+|}
+
+Note that sparkfun sold what can be described as the mother of all xbees, the [http://www.sparkfun.com/commerce/product_info.php?products_id=9411 XTend 900 1W RPSMA]. With 1W transmit power and a 40 mile range this thing might be useful in case we ever need to transmit data over the desert. (Benelec radios are powerful&nbsp;:)
+
+DECISIONS:
+*Access point is too heavy. However due to your performance so far you will be kept as backup.
+*Xbee, go away. You would require the team purchasing quite a bit of hardware and possibly antennas.
+** Your data rate is questionable too.
+*Bluetooth, please follow xbee for the same reason.
+*3G, you are only useful for about 2% of the race. You're the only one who has direct internet though, so you will be demoted to expansion board.
+*Wifi, you are welcome. Now modules, please fight it out.
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+| Competitors! 
+| Roving Networks [http://www.rovingnetworks.com/wifly-gsx.php WiFly] (w/ [http://www.sparkfun.com/commerce/product_info.php?products_id=9333 Breakout Board])
+| Lantronix [http://www.lantronix.com/device-networking/embedded-device-servers/matchport.html Matchport b/g]
+| ConnectOne [http://www.connectone.com/products.asp?did=73&pid=80 Nano WiReach]
+|-
+| Price
+| US$84.95 (sparkfun breakout)
+| AUD137 (soanarplus), might be chaper somewhere (US direct?)
+| AUD79.65 (mouser australia market)
+|-
+| TX Power
+| +18 dBm
+| +14 dBm +2-1.5
+| +15 dBm typ
+|-
+| RX sensitivity
+| -85 dBm
+| -91 dBm @ 1Mbps
+| -74 ~ -88 dBm
+|-
+| Data rates
+| 1 MBps
+| software selectable (300 bps to 921,000 bps)
+| up to 3Mbps (UART), up to 5-6 MBps (SPI, claimed in general connectone faq)
+|-
+| Interface
+| UART
+| CMOS (Asynchronous) 3.3V-level signals
+| RMII (ethernet), UART, usb, spi
+|-
+| Power Consumption
+| 4 uA sleep, 40 mA RX, 140 - 212 mA TX
+| 224 - 360 mA max
+| 190 mA RX, 250 mA @ 16 dBm (typ TX)
+|-
+| Features (that matters)
+| TCP/IP stack, Webserver, configurable over uart or wifi, etc
+| similar stuff
+| similar stuff
+|-
+| Reason for shortlisting
+| first noticed from sparkfun, best efficiency, also see additional notes below.
+| Built by same company who built xport pro, which was used in nicta(?)
+| Suggested as wifly alternative on two short posts on sparkfun forums, high data rate and SPI interface available.
+|-
+| Additional Notes
+| ability to wake up, connect to a wireless network, send data, and return to sleep mode in less than 100 milliseconds
+| Antenna socket unknown?? need checking
+| Connectors' surface mount fine pitch D:
+|}
+
+DECISIONS:
+
+* Matchport gobbles the most power, has lowest tx power and slowest data rate. Out! 
+* WiFly has no spare capacity if CAN network is running at max speed. Moreover quick research seems to indicate their lack of cust service?
+* Nano WiReach won because of their data rate and flexibility of interfaces. While it's not the best in tx power or power consumption, data rate is the more important parameter here. Also not many modules on the market uses SPI for some reason.
+* Free UART / SPI lines will be broken into header so other modules can be connected for experimentation (eg that uber xbee module / hsdpa). Also provides convenient space for hooking up logic analyzers.
+
+TODO: 
+*Triple check nano wireach to make sure it does what I need, also figure out how to interface and tx / rx stuff.
+*Triple check wireless regulatory certification?
+
+=== IPv6 Compatibility  ===
+
+*In 10 years ipv6 might be extremely widespread 
+*there might be reasons why ipv4 cant be used anymore? 
+*How to implement? Should be implemented?
+
+DECISIONS: 
+
+*IPv6 stuff is very early now. No definite stable implementation exists... ''to the best of the author's knowledge''
+*Any stable IPv6 device would still accept IPv4, unless they're made by sony or something.
+*Hence this factor is out of the author's consideration.
+** If needed in 10 years the badass author can help the next generation sunswifters to upgrade SION into SION-TATARI
+*** Provided they have read speed of light at the very least :P
+
+
+
+=== CAN Interface ===
+* Two controllers are already integrated in the micro.
+* Transciever used is probably SN65HVD232, the one used everywhere in sunswift
+** Looking at ISO1050 at the moment, see if it can be used (check that email thread)
+** They both conform to ISO11something something standard, but the 1050 has slightly higher signal voltages (about 0.5V)
+
+* [http://ics.nxp.com/support/documents/microcontrollers/pdf/lpc17xx.can.arm.pdf Interesting intro on CAN] by ARM/Keil for the LPC17xx
+** Wat is split termination?
+** Is scandal hi speed or fault tolerant?
+
+* Error counter register info should be read and transmitted as bus health info.
+
+* [http://permalink.gmane.org/gmane.linux.distributions.gumstix.general/53035 MCP2515 does not play well with OMAP]
+* Checked SJA1000, it has like 64 bytes of rx buffer. However, after reading datasheet this only accounts for 4 full message in buffer + 12 bytes of the fifth message (there's 13 bytes in total)
+** [http://bec-systems.com/site/544/integrated-can-solutions-for-linux So basically] it'll have the same problem. Shame.\
+** Linux has real time patch set, which could solve this problem.
+** Shared A/D bus means the lines must be decoded with something like [http://focus.ti.com/docs/prod/folders/print/sn74lvch16t245.html SN74LVCH16T245]. It can also work as logic level translation, wheee
+* LPC11C14 has 32 Message Objects, whatever that means. 32 message space I think?
+** But it has 8 kB of RAM. Assuming 2 kB used for program code (msp430f149 has 2 kB ram), this leaves 6 kB for CAN buffer. Assuming 13 bytes per CAN message, we have a buffer of 461 messages (combined TX/RX).
+** It is very new though, erratasheet is still blank, so chances are there are some bugs not discovered yet. Sticking to the lpc1768 for now.
+
+
+* Scandal packet size is 128 bits / 16 bytes.
+* At current speed of 50 kbps, this means a message every 2.6 milisecond.
+* At max speed of 1 Mbps, this means a message every 128 microsecond.
+* This means SJA1000 will be full every 0.5 ms. MCP2515, half the time plus SPI overhead.
+* '''Can the microcontroller be interrupted every 0.5 ms to service this CAN stuff???'''
+** Most nodes ignore most CAN messages, so they're okay. But SION is a CAN packet sniffer, so it has to capture everything.
+
+Since the MCP2515 and SJA1000 do not have large enough buffer, the CAN transciever used will have to be inside a microcontroller, regardless if we're using Linux / normal micro. A good candidate is the LPC11C14 since it has newer can architecture.
+
+===Memory storage===
+*Need to log ALL solar car telemetry, before first light all the way to after last light on the race
+* Microcontroller's flash is definitely too small
+* Flash memory chips are not easy to handle (the kind you buy from intel and solder manually)
+* Hard disk & SSD are too bulky (unless they got us sponsorship from intel, etc)
+* Flash memory are preferable
+
+3 are commonly used today:
+*Compactflash uses ATA interface, so many pins to solder
+*SDCard uses serial
+*Flash drives uses USB
+
+*Winner: SDCard
+* [http://www.sdcard.org/developers/tech/sdcard/pls/Simplified_Physical_Layer_Spec.pdf SDCard Physical Layer Spec], pretty much the only doc available without joining the SD Association. not that I can understand the extra info anyway.
+* oh man wtf: http://forum.sparkfun.com/viewtopic.php?f=9&t=16075 third post:
+** "The Ti code works with SPI interface mode (which is the simplest choice of the three SD interface modes) which is not required to be supported by microSD cards."
+** This is true apparently - SPI support is optional for miniSD and microSD cards. BUGGER.
+** [http://www.ghielectronics.com/product/1 This interesting chip] seems to convert SPI/ UART to SD, with FAT included. But part of the price is paying microsoft for a fat license = blaaargh.
+*** Lo and behold, that just looks like custom firmware on an LPC2103, which does not have MCI too - so basically they're for people who cant use fatfs or want proper long file support. Not me! Dismissed.
+*** There's an alternative called dosonchip, which seems to do proper Sd interface. Unfortunately they only have sparkfun and another random company as distributor, and they're out of stock. not sure if even alive.
+
+* Actually, SPI should work in most cases, and is much simpler compared to full blown MCI. Considering the headache overhead of working with MCI, SPI should be preferred. This is further reinforced by the large number of support for SPI mode available, including FATFs and an official NXP application notes covering its implementation on the chosen device.
+
+* Say, suppose instead of attaching the SD Card through SPI, we use a gumstix with microSD as a dedicated database server.....?
+* Adding [http://www.st.com/stonline/products/families/emi_filtering/baseband_ipad/related_info/emif06-msd02n16.htm ESD protection chips]: good idea / no?
+
+==== Life Cycle estimation ====
+<s>
+* SION is designed to run for 10 years without any changes
+* Most likely thing to fail would be the flash memory due to limited write cycle (also see data integrity below)
+* Need lifecycle calculation, perhaps some sort of alert re: replacing sdcard
+** SLC (single level cell) SD Cards preferable due to longer lifecycle
+* automatic sync is also a big help
+* Dual SD card (eg RAID 1)?
+</s>
+No, considering even the worst case scenario of filling a card every single day, you'd need to run for 10000 days / 27 years before things start to break. This is a non-issue.
+
+==== Data Integrity / Backup Power ====
+*Solarcar life is tough.
+*SION is logging everything, all the time
+*Power will go out without warning during flash write operation
+*SDCard might not like it, data corruption or the SDCard will die
+*Hence a backup power system is provided, allowing for flush operation. See power section below.
+*There's 5 ways a write operation can be interrupted:
+** External loss of power - covered by backup power below.
+** Brownout power - covered by brownout interrupt at 2.95V
+** External reset on RESET pin - not covered. Anytime RESET is pulled low it will be during dev / debugging.
+** Watchdog timer - if this happens something is VERY WRONG. An interrupt is available but might be best not to use that to flush data, instead write a debug message.
+** Physical failure, eg sd card removed - not much we can do here eh?
+
+==== SDCard space usage ====
+Calculations:
+*Worst case scenario, assuming input is constant 1 Mbit / s
+*That is about 125 kByte/s or 450 000 bytes / hour (450 MB)
+*Assuming car telemetry on from before first light to after last light
+*Assuming that time length is 14 hours, that means 6 300 000 bytes / day (6.3 GB)
+
+The data will fill the majority of a 8 GB SDHC card, every single day. Double that for two CAN protocols, you need to do a full sync AT LEAST twice a day.
+
+Now let us try the more realistic scenario of 56 kbit/s, the current speed(?)
+*With the same assumptions above, 14 hours of log is only about 352.8 MB.
+*A 8 GB SD card can store 22 day's worth of data, about the length of the entire WSC trip.
+*In this case the card can be left in and the entire thing taken out after the race in one fell swoop.
+
+Two protocols is not an issue here.
+
+===RTC ===
+*Synchronized from GPS time
+** GPSBarometer timesync packet is only last 32bit of microseconds, does this covers years?
+** need a way for it to know the full time (all the way to years)
+<s>
+*How does the gumstix / whatever else handle time if no GPS present?
+**From testing with the mavstar gumstix, one image somehow knows exactly what time is it and another thinks we're entering the new millenium. In any case a permanent timekeeping device is required.
+
+* Something like [http://www.sparkfun.com/commerce/product_info.php?products_id=99 this]. Maybe put 2x lithium bettery in?
+** requires the battery to be declared?
+** Must use temperature compensated crystal. While it will have daily GPS sync overnight during race, the 3-4 month summer break might allow for some drift... or maybe it doesn't really matter.
+** Those chips can deliver timing in a variety of ways, need to choose which format is best.
+** try using I2C which means it frees UART/SPI for something else?
+</s>
+Possibly irrelevant since ARM has internal RTC? - yes.
+
+LTC1768 has an internal RTC
+* Separate power domain so it can run on coin cell battery while everything else is off.
+* Automatic switching between battery (when chip off) or main chip power (to save battery).
+* Implementation on mbed is [http://mbed.org/users/chris/notebook/rtc-battery-backup-current/ flawed], though is fixable.
+* For high accuracy requirement, just attach a temperature compensated RTC to the expansion board thingy.
+
+'''IMPORTANT''': RTC DOES NOT WORK over temperature range - see device erratasheet. No more detail given. Then again mbed people seem to be using rtc just fine, maybe it's the accuracy?
+
+=== USB Data / Console Access ===
+* Would be super useful for debugging
+* May / may not use the USB/CAN interface.
+* This is essential for downloading data in case of wireless failure, so it MUST BE WORKING.
+* Triple check the FTDI footprint
+** FT2232 has SPI, might be useful
+
+*According to [http://mbed.org/users/ms523/notebook/mbed-usb-breakout/ this] the LPC USB driver need some work? It's certainly not as userfriendly as simply dropping in an FTDI.
+** Console port on the gumstix overo summit breakout board uses FTDI instead of direct usb. Investigate.
+
+*Since UART0 can be used to load the image serially, having it interfaced to the computer via FTDI will hit two birds with one stone.
+** [http://mbed.org/users/ms523/notebook/mbed-usb-breakout/ You got your simple no fuss serial interface]
+** <s>You got your simple no fuss bootloading</s> Its windows only, so it's full off fuss.
+
+=== Ethernet wired connection ===
+<s>
+* Allows for backward compatibility (in case of WiFly) or main connectivity (Netgear AP + MSP430 SION)
+* Suggested Lantronics xPort devices - apparently has been used at nicta. Uses RS485. (MSP430 SION)
+** Need to check data throughput
+* Gumstix *might* already have ethernet on their own - doublecheck
+</s>
+ARM has been selected, it has an integrated controller which outputs RMII. So now we need a transciever and magnetics.
+
+Transciever selection:
+* mbed uses the [http://www.national.com/pf/DP/DP83848J.html#Overview DP83848J], which seems OK. Alternatively the K version should be easily substituted, to get a wider operational temperature.
+** LLP only, FFFFFFF. Do not want!
+* From the [http://www.national.com/cat/index.cgi?i=i//359:s//92//PHY parameter table], looks like the [http://www.national.com/pf/DP/DP83848I.html#Overview DP83848I] can be a good substitute.
+** [http://www.national.com/an/AN/AN-1469.pdf Physical Layout Guide]
+** [http://www.national.com/analog/interface/refdesign_demoboards Reference Design], though for some whatever reason it looks different to the mbed schematic... might be my eyes.
+
+Magnetics selection:
+* NICTA reportedly has a whole box of connector with embedded magnetics - doublecheck
+**They're surface mount connectors with itsy bitsy little tabs which doesnt stick to solder - will fall apart easily! No good.
+
+* DP83848 physical layout guide specifically recommends a particular connector with integrated magnetics,[http://search.digikey.com/scripts/DkSearch/dksus.dll?lang=en&site=US&WT.z_homepage_link=hp_go_button&KeyWords=SI-60062-F&x=0&y=0 SI-60062-F] [http://au.farnell.com/stewart-connector/si-60062-f/icm-1-1-full-magnetics-led/dp/1137983?Ntt=SI-60062-F Farnell]
+** Expensive! See if we can find similar spec [http://www.sparkfun.com/commerce/product_info.php?products_id=8534 alternatives], since they also said other things with similar specs are fine too.
+
+*[http://ics.nxp.com/support/documents/?scope=ethernet&type=appnote&sort=date&locale=en,,Latn NXP App note] for ethernet.
+*[http://www.national.com/an/AN/AN-1862.pdf Reducing Emissions] - to be noted while designing PCB + case
+*[http://www.national.com/an/AN/AN-1540.pdf Power Consumption] - also to be noted.
+
+=== CC430 Cronos watch (FOR FUN)===
+* Connect to the main microprocessor
+* Receive a dumb stream of data from main processor
+* Sends dumb stream of selected telemetry data to watch periodically (keeps bandwith & power down)
+** Multiple watches!
+* Watch will select which data to display
+Plausible explanation to write in actual thesis:
+:"This is useful during control stops, where monitoring the solar car through the control car is not possible due to <s>buying iced coffee</s> refueling, and monitoring through driver display is not possible due to driver being outside, and keeping the canopy open is not possible since it will shade the array. "
+* Say, this actually seems like a valid concern. Shall we assign a button on the watch to trigger rear string IV sweep?
+* The CC430 / CC1101 may end up on the breakout board instead on the mainboard, I cant imagine us gettting stuck with TI's proprietary RF for 10 years (albeit only for such a minor role). Breakout also means we can try stuff like [http://www.sparkfun.com/commerce/product_info.php?products_id=8602 this] (though if it got pressed continously and the trackes goes into constant sweeping......)
+
+=== Video Output (FOR FUN) ===
+<s>
+* VGA output chip?
+* Allows attachment to those pico projectors
+</s>
+
+If we want this we should put in a Gumstix or something similar onto the expansion lines, then run the graphical part off that.
+
+=== Power Supply  ===
+
+*Source power is 12V, everything on the board is 3V 
+**<s>Alternative: USB power (100mA@5V bus power, 500mA max specs) </s>
+*** <s>Possible, but need split USB cable since this thing can took more power than a single USB can provide. </s>
+*** USB power cannot be isolated / current limited, may screw up things.
+**<s>Alternative2: Power over Ethernet (warning 50+V, nonstandard implementations)</s> - too confusing, reject! 
+**There should be a 12V header so an extension module can connect to it if need more power 
+*Backup power is needed, see data integrity above.
+*RTC battery is needed - A single coin cell will do.
+*Do we want voltage supervisor - warning hard reset may interfere with filesystem! 
+*[http://elm-chan.org/docs/mmc/mmc_e.html Add caps on SD card power to prevent voltage dip during insertion]
+ 
+==== Isolation & Protection ====
+*Complete Electrical isolation is a good idea as this device is likely to be expensive AND somewhat hard to reconstruct 
+**if it's MSP then it wouldnt be that expensive or hard to reconstruct, but preventing high voltage on sdcard is paramount. 
+**dual output isolated power supply, combined with iCouplers? for separate isolated sections: processors, can transciever, wifi module, (ethernet isolation is a given?), usb? 
+**the device will be split over different power regions due to isolation
+** Alternatively, we can isolate just the SDCard
+*** But it might cause data corruption if the micro behaves differently when hit with a surge?
+*** Also, exploding supercaps. Two of them. Eeeeew.
+**** we HAVE to try exploding those supercaps! wheeee
+** From these two arguments I say it is better to doisolation the hard way (wifi + CAN) rather then SDCard.
+
+* Hang on, if you got a massive surge, wouldn't it will still go through the inductor due to the magnetic coupling (albeit reduced by the nature of inductors themselves)?
+** Slap on some surge protection devices there. There's some in the power supply chapter of the art of electronics - crow bar circuits?
+** The inductor in the flyback transformer will saturate, effectively capping surge currents as long as the isolation hold.
+
+* For extra protection stuff, have a read from the [http://www.littelfuse.com/design/application-literature/application-notes.html littelfuse app notes].
+** Like [http://www.littelfuse.com/data/en/Application_Notes/ec621a.pdf ESD] (for nonisolated interfaces/ USB, SDCard) and [http://www.littelfuse.com/data/en/Application_Notes/an9768.pdf transient suppresion] (does isolation = transient suppresion?)
+
+==== Power Supply Chain ====
+*ADuM5402 is terribly inefficient, its even worse than a linear regulator!
+
+Possible devices to play around with: 
+
+*[http://www.national.com/pf/LM/LM2674.html#Overview LM2674] 
+*[http://www.murata-ps.com/cgi-bin/cd4power.storefront/4c24ab760bca437e27200c9f894206df/Product/View/NKE0303SC NKE0303SC] isolated 3v3-3v3 DCDC
+*texas instruments LDO from currentint? 
+*[http://focus.ti.com/lit/ds/symlink/dcr010505.pdf Isolated 1W dc/dc converter, TI] 
+*http://solarcar.stanford.edu/archives/615 - what Stanford gonna use. Guess they dont want anything blowing up again.
+* super stable LDO from microcip - the one on eevblog
+
+General power info: 
+
+*[http://mbed.org/users/no2chem/notebook/mbed-power-controlconsumption/] mbed power consumption 
+*see ethernet power consumption above.
+
+Backup Power discussion:
+* Normal method of shutting this off is by pulling the plug (sunswift method, ha)
+* Back up is required to give time for flushing the data onto the SD Card. This is to prevent data loss due to corrupt FAT by pulling the plug during a write operation
+* Power can be provided by either a battery or a supercap.
+* Triggering the flushing operation can be done by actively sensing input voltage (12V CAN / 5V ) thru an optocoupler and flushing when it detects them missing.
+** Alternatively, if using supercap it can be left to discharge on its own, until it triggers the 2.95V brownout detector interrupt which will flush data to disk.
+
+* Battery solution:
+** Coin cells are OUT since they cant provide enough current! (0.2 uA, wat)
+** Bigger battery means clash with wsc battery regs
+
+<s>
+* Supercap requirements: 
+** SION draws 0.9A, worst case scenario. Lets say we give 1s time to flush, which should be enough considering its ram is only 64 kB
+** That means it will draw 0.9 Couloumbs.
+** Flush is triggered at 2.95V due to brownout interrupt and stopped at 2.7V due to SD Card minimum voltage
+** 3 equations: 
+*** C = Q1 / 2.95 V
+*** C = Q2 / 2.7 V
+*** Q1 - Q2 = 4.5 C
+** Solution: 3.7 Farad needed, and must be able to handle 3V3
+*** Actually to be safe, you want the lower voltage to be 2.75V, but 4.7 F will still result in the same solution below
+** Using active sensing means flushing can begin immediately at 3V3, with the lower voltage 2.75V you only need 1.7F, which means you can use a lower capacity cap.
+
+*Supercap solution:
+** [http://search.digikey.com/scripts/DkSearch/dksus.dll?Detail&name=P11345-ND This] [http://industrial.panasonic.com/www-cgi/jvcr13pz.cgi?E+PZ+3+ABC0008+EECHW0D106+7+WW is] the only suitable supercap. 
+** It is [http://industrial.panasonic.com/www-data/pdf/ABC0000/ABC0000PE77.pdf the only one] with 1A discharge rate. 
+** Two in series need to be used since it is only 2.3V
+** Read the [http://industrial.panasonic.com/www-data/pdf/ABC0000/ABC0000PE41.pdf app guideline] for implementation, since they are bombs. Especially soldering, bleeder resistor (see also: eevblog), etc etc.
+*** [http://industrial.panasonic.com/www-ctlg/tech/tABC0000_WW.html yeah instruction manuals!] [http://industrial.panasonic.com/www-data/pdf/ABC0000/ABC0000PE68.pdf MADE IN JAPAN!]
+** Active life is only 1000 hours at 70C, which is kinda normal for supercaps - but sucks anyway.
+** MAJOR DISADVANTAGE: Energy stored in caps = 0.5 * 5 F * 3.3 V ^2 = 27.225 Joules!!!!
+*** That's the power lost everytime this thing is power cycled.
+*** For illustration, that means the borrowed time costs 27.225 J = 27 Watt!
+*** There might also be an issue with inrush current when turned on?
+** Using 2x 4.7F will result in dissipation of 'only' 12.8 Joules. Still big!
+** Actually the self discharge is low enough to prevent voltage loss overnight. So we will lose 27 Joule once for the entire race (when it matters!) - as long as we can prevent the rest of the device from discharging it.
+*** Gonna sleep, I'll see if I can figure this out on the bed.
+*** Doublecheck life design in the instruction manuals, just to make sure.... we want this to work 10 years!
+</s>
+
+* Solution: [http://cds.linear.com/docs/Design%20Note/dn450f.pdf Supercap with charge IC and boost converter]
+** Pick a device with pins, the ones in that app note are all leadless
+** Modifications need to be made, the switchover chip dies at 2.5V = wasted power. Switchover should be on the output of the boost converter.
+** Simulate using LTSpice first
+
+* [http://www.linear.com/pc/productDetail.jsp?navId=H0,C1,C1801,P90849 LTC4425] The only supercap charger with pins on the package.
+** Page 15 of datasheet, bottom schematic, the circuit we're aiming for.
+** However the buckboost in theat chip is only QFN too. 
+** Hey wait, this chip though it has legs also has pad underneath! 
+** Softstart should be enabled.
+** <s> Current limiting if power is plugged from USB? </s> No USB power.
+
+* Chosen capacitor: EECHZ0E--- series from Panasonic
+** [http://search.digikey.com/scripts/DkSearch/dksus.dll?Detail&name=P13764-ND Digikey], [http://industrial.panasonic.com/www-cgi/jvcr21pz.cgi?E+PZ+3+ABC0022+4++WW Panasonic]
+** It has a max voltage of 2.5V, just barely enough to match the smallest LTC4425 voltage limit.
+** Has 1A discharge current rate? This is similar to the supercap dismissed above.
+* Alternative: nichicon evercap UM high voltage series
+** [http://search.digikey.com/scripts/DkSearch/dksus.dll?Detail&name=493-3295-ND Digikey]
+** 2.7V max voltage, so we have 0.4V leeway; also endurance is 1000 hours at 70C
+
+* Find alternative buckboost!
+** TI: [http://focus.ti.com/docs/prod/folders/print/tps43000.html Looks Huge!] [http://focus.ti.com/docs/prod/folders/print/tps61131.html Looks meh]
+** National: [http://www.national.com/mpf/LM/LM2578A.html#Overview Even more meh]
+** Linear: [http://www.linear.com/pc/productDetail.jsp?navId=H0,C1,C1036,P1627 WINNER] - LTC1308B
+*** Tested this on LTSPICE, works beautifully.
+*** Lolwat, it can use a transformer instead of 2 inductors
+*** Used the extra cap to prevent ringing, see datasheet
+
+* other / auxiliary powers:
+** 3V3 CAN transciever: MIC5200
+** Wifi module: Murata PS or TI isolated, whichever is more efficient / lower noise
+*** <s> Check the power supply requirements of the wifi module </s> Nothing specified.
+** USB: FT232 internal 3V regulator
+
+<s>
+* 12V-5V converter: [http://www.linear.com/pc/productDetail.jsp?navId=H0,C1,C1032,P1620 LT1374]
+** It can supply 4A... but that means 20W without isolation. Now I dont want to use a 20W isolated module in there.
+** Why 4A? To charge the bloody supercaps!
+*** Say this actually don't make sense. If 900mA @3v3 can drain the supercap in ~1s, surely you'd need LESS current to charge it up at 4.7V?
+** What about [http://www.linear.com/pc/productDetail.jsp?navId=H0,C1,C1003,C1042,C1113,P86861 this (what stanford uses, but fffuuuu gnd pad)] or [http://www.linear.com/pc/productDetail.jsp?navId=H0,C1,C1113,P1920 this, which seems promising]?
+*** Softstart should be enabled
+*** The datasheet for the latter looks like swahili to me. Also it's not dual output.
+*** Make sure you check the isolation rating on the inductors.
+*** Oh lol, the first one can only supply 5W at 5V, the second one says 'Build a prototype to verify design'. No wonder considering it was created in 1984.
+** Etienne suggested lt3509 but it is not an isolated controller.
+** New promising chip: [http://www.linear.com/pc/productDetail.jsp?navId=H0,C1,C1113,P112210 LTC3748]. Ceck out page 28 of datasheet, exactly what I want.
+*** The table of recommended transformers list nonextstant transformers. Wtf.
+</s>
+
+*Gave up on custom flyback. Looking at modules.
+**TDK-Lambda CC10-1205SF-E [http://search.digikey.com/scripts/DkSearch/dksus.dll?Detail&name=445-2435-ND Digikey], [http://au.farnell.com/tdk-lambda/cc101205sfe/dc-dc-converter/dp/1547717 Farnell] chosen!
+** That was hassle-free.
+
+*putting all them in series means a long(?) wait for supercaps to charge up before the thing can even turn on!
+** Need branching with two (schottky) diode - this allows the sepic regulator to get 4V5 immediately, while the supercap can charge separately. Solved.
+
+* All high power consumption devices should be able to be turned off, and they should be off by default.
+** <s>This is to prevent high load when supercap isn't finished charging yet (which may or may not be a bad thing) </s>
+** Still a good thing to do, but the above solution is not relevant anymore.
+
+* Backup power summary:
+** 12V input is converted to 5V using DC-DC isolated module (tdk lambda)
+** the 5V bus is split into two:
+*** One thru the supercap charger, and thru the two series backup supercaps, then a diode.
+*** Another thru a diode directly to SEPIC regulator
+** This allows automatic switchover in case of power failure, but allows instant on while supercap charges separately.
+** the supercap outputs are converted to 3V3 using LT1308B SEPIC converter - which allows operation from 5V down to ~1V2
+** Power is transferred to wifi module using ????
+** CAN transciever is powered by ????
+** 12V input jack available (yes / no?)
+** USB power is not used.
+
+==== POWER REGIONS &amp; BUDGET  ====
+
+There are isolations between regions. 
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+| Region 
+| Device 
+| Current Consumption 
+| Notes
+|-
+| 1 - CPU 
+| LPC1768 
+| 50 mA 
+| 42A during empty infinite loop, 100MHz, all peripherals disabled. Rounded to 50 for normal operation appriximate (arbitrary).
+|-
+| 
+| SJA1000 
+| 0 
+| If used instead of the LPC, will be definitely below 50 mA. Ignored for now.
+|-
+| 
+| Gumstix Overo 
+| 700 mA, including wifi, on board, not sure about microSD
+| Will use max spec for calculation - from [airccse.org/journal/ijngn/papers/0910ijngn03.pdf here]
+|-
+| 
+| LED statuses 
+| 25 mA
+| Approximate total consumption of all LED indicators on the board. Conservative.
+|-
+| 
+| MicroSd card on overo 
+| 200mA 
+| max spec of a sd card.
+|-
+| 
+| ADM1191 
+| 2mA 
+| Max, typical 1.7 mA
+|-
+| 
+| IL712 to 2 
+| 8 mA 
+| 2 mA each quiescent, the extra 2 is for drive current
+|-
+| 
+| Various Glue Logic
+| ????
+| Things like logic level translators, logic gates, have very low quiescent current and unknown operating current.
+|-
+| 
+| Subtotal
+| 1 A
+| 
+|-
+| 2 - CAN Transciever  (isolated, non-backed up)
+| SN64HVD232 x2
+| 34 mA 
+| 17 mA each, there will be 2 transcievers.
+|-
+| 
+| IL712 to 1 x2 
+| 8 mA
+| 2 mA each quiescent, the extra 2 is for drive current
+|-
+| 
+| MIC5200
+|  
+| Power loss for supplying above.
+
+|-
+| 4 - USB (Bus powered)
+| FT2232H Core
+| 70 mA
+| 1.8 V
+|-
+| 
+| FT2232H PHY
+| 30 mA 
+| 3.3V
+|-
+| 
+| 93LC46 EEPROM
+| 2 mA 
+| Write current, normally in microamps if not doing anything.
+|-
+| SUMMARY 
+| Current consumption of CPU subsystem
+| ~ 985mA ~= 1A @ 3V3
+| 
+|}
+
+1A current draw at 3.3V means 3.3W. It is assumed that 1 second will be enough to do a flush operation, so the total energy required is 3.3 Joules. This is drawn from the supercapacitor with the LT1308A. the efficiency is approximated at 70 %, so the required energy input is ~ 4.7 joules. The supercaps have a combined max voltage at 5V, so using the capacitor energy equation we can calculate the supercapacitor size requirement, which is 0.376 Farads.
+
+=== Expansion Boards ===
+Since there will be some broken out lines, here's some possible expansion boards for them. The lines are nonisolated, but should it requires one the isolation should be provided by the module.
+
+Available interfaces (TO BE REVISED with proper pinouts):
+* 1x SPI - shared with Wifi
+* 1x UART / I2C Shared
+* 2x AnalogIn (1 with analogout)
+* 2x PWMOut
+* 3v3 power + GND
+
+Should this also include the 12V + CANGND breakout pins? (included in case a high powered module is used, eg the digi xtend)
+
+Possible interfaces:
+* CC1101 (TI Chronos watch) - will be made.
+* XBee to top shell - if we have one in the future.
+* RS232 (uart - max232) - why you want this I don't know.
+* HSDPA (motorola h24)
+* High speed realtime data (eg suspension, A/V)
+* DSP (Signal Processing)
+* Gumstix (Quake 3, computer vision, A/V, MySQL if you're ambitious)
+* Temperature Compensated RTC (eg DS3231)
+* Digi XTend 900 1W serial modem (3.7 W power consumption max @5V, whew)
+
+===Design & Manufacturing ===
+This is a design from scratch, I should strive for high standards:
+* Everything must be reflow compatible (eg in the words of screaming circuits, "No Via In Pads")
+* Everything should be able to be sent to an assembly house
+* If the two above are met it is likely that this thing would be compatible with mass production (AKA making a profit)
+
+Some design resources:
+* Art of Electronics for high frequency circuit info (what, those data links ARE high frequency, carrying megabits per second and stuff.)
+* One page manual, see user guide below.
+* [http://www.screamingcircuits.com/Portals/0/documents/QFN%20Layout%20Guidelines.pdf QFN Layout Guide]
+* [http://www.screamingcircuits.com/Portals/0/documents/Via_In_Pad_Guidelines.pdf Via in Pad guide]
+
+Some manufacturing challenges:
+* <s> DP83848 Ethernet PHY is LLP only, nicta reflow here I come. </s> Irrelevant, picked another PHY
+* LT4425 had pad underneath, must be soldered.
+
+=== HARDWARE SUMMARY ===
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+| Parameter
+| Device
+| Notes
+|-
+| Architecture
+| ARM
+| 
+|-
+| MCU
+| NXP LPC1768
+| ARM Cortex M3 100 MHz
+|-
+| RTC
+| ?????
+|
+|-
+| CAN
+| Integrated in LPC1768, 
+| Transciever TI SN65HVD232, isolated with ?????
+|-
+| Wifi
+| ConnectOne Nano WiReach
+| isolated with NVE IL717 
+|-
+| Ethernet
+| Integrated in LPC1768 
+| PHY Transciever ????, magnetics ????, port ?????
+|-
+| USB
+| Integrated in LPC1768
+| Transciever ???, isolated??? with Analog Devices ADuM4160????
+|-
+| Expansion Interface
+| 1x UART, 1x SPI, 1x I2C broken out
+| Additional expansion modules, see above.
+|-
+| Mass Storage
+| SD Card (Brand????)
+| NOT miniSD or microSD - SPI conformance is not a requirement for those.
+|-
+| Mass storage protocol
+| SPI
+|
+|-
+| Power Supply
+| 
+* Murata power electronics ???? isolated dc-dc (2-1, 2-3) 12v-???
+* ???? buck switching regulator ???-???
+* ???? LDO ???-???
+* <s>ADuM5402CRWZ iCoupler integrated isolator+dcdc (1-2) 3v3-3v3</s>
+|
+|}
+
+==Technical Design Decisions - Embedded Software==
+LOTS OF SOFTWARE IS STILL IN HARDWARE SECTION, CLEAN UP PLZ
+
+=== Compilation Toolchain ===
+* We want a linux based toolchain since the author will just get distracted by games on windows.
+** Also extra 1337 h4x credibility.
+**Honestly, this is because Sunswift is a linux shop, it'd be nice to get everything run under linux which is FOSS.
+** And the fact that you have to pay for proprietary software
+** and working in a floor full of kernel hackers
+
+Make sure that compiler, debugger, programmer and the micro all work with each other!
+
+* [http://embdev.net/topic/129986#new Nice compilation of links]; ignore the flamewar on coocox, they seem to spam everywhere
+* [http://pixhawk.ethz.ch/tutorials/lpc2148_jtag_arm-usb-tiny_tutorial Pixhawx], being hardcore, compiles THEIR ENTIRE TOOLCHAIN FROM SCRATCH.
+
+Software Compiler:
+* http://www.arm.com/products/tools/software-development-tools.php - Official, Proprietary compiler. Costs money. Do not use.
+* http://www.codesourcery.com/sgpp/release1287?%40action=check_compatibility&%40template=datasheet&device=761&core= - GCC based compiler, CONFIRMED WORKING
+* http://www.ibm.com/developerworks/linux/library/l-arm-toolchain/index.html?ca=dgr-lnxw13ARM-Toolchain&S_TACT=105AGX59&S_CMP=grlnxw13 - summary of getting startup guide above, kinda useless, has lots of useful links
+* http://www.gnuarm.org/resources.html - seems outdated, dont know why.
+* GCC and mbed:
+** [http://mbed.org/users/lolpcc/notebook/gcc-and-mbed/] Some dude from york uni who's adapting mbed for their own courses.
+** [http://www-users.cs.york.ac.uk/~pcc/MCP/index.html] The project page for the above, using CMSIS
+** [http://mbed.org/forum/mbed/topic/272/?page=1] Someone managed to compile FreeRTOS for mbed.
+** [http://mbed.org/forum/mbed/topic/665/] Another offline compiling howto - CONFIRMED COMPILING, need mbed to test
+** [http://www.bravegnu.org/gnu-eprog/index.html] Detailed explanation on what happens during compilation. Useful for the linker file description.
+
+Hardware Programmer:
+* [http://wiki.openmoko.org/wiki/Debug_Board_v3 Openmoko JTAG Debug Board], which is used for programming the openmoko phone. NICTA has two of them unused, so they will be tried first. It's FT2232 based.
+** They also have a very nice [http://wiki.openmoko.org/wiki/Neo_1973_OpenOCD guide] on using OpenOCD with it.
+* http://www.olimex.com/dev/arm-usb-tiny-h.html - and the collection of links down the page
+* [http://ics.nxp.com/literature/other/microcontrollers/pdf/arm.mcu.debuggers.emulators.pdf official list from NXP]
+* http://www.keil.com/ulink/ - Official debugger, Expensive!
+* [http://ics.nxp.com/lpcxpresso/ LPCXpresso] dev kit (prog + base), windows only, LPCXpresso IDE only. OUT!
+* ARM, don't hide your JTAG pinouts in such obscure places, like on [http://infocenter.arm.com/help/topic/com.arm.doc.dui0155k/DUI0155K_rvi_user_guide.pdf page A-2 of this document]!
+
+Bootloading Resources:
+*[http://mbed.org/forum/mbed/topic/322/?page=1 Some discussions] on USB bootloading.
+*[http://ics.nxp.com/support/documents/microcontrollers/zip/an10866.zip Secondary USB] bootloading, I think its basically enables programming from any interface besides UART0.
+** This actually allows MBED-like drag and drop programming without the need for an interface chip.
+*[http://forum.flashmagictool.com/index.php?topic=2795.0] There is no serial bootloading tool under linux! FFFFFFFFFFFFFFFFFFF
+* [http://openocd.berlios.de/web/ OpenOCD]
+* For mbed Prototyping Board:
+** [http://mbed.org/users/chris/notebook/prototype-to-hardware/ Explanation] on the whole mbed programming toolchain magic thingy, and how to move to production boards when you've developed your stuff in mbed.
+** [http://mbed.org/users/ms523/notebook/turning-an-mbed-circuit-into-a-custom-pcb/] Some dude following the above, pretty much identical stuff.
+** [http://mbed.org/forum/mbed/topic/458/?page=1 Some more] explanation, same topic
+** [http://mbed.org/projects/cookbook/svn/Prototype2Product/Eagle/Prototype2Product.pdf Partial Schematic] of the mbed, they're keeping their magic chip completely covered up for the time being, going as far as [http://mbed.org/users/chris/notebook/rtc-battery-backup-current/ messing with the chip labels] (see first set of pictures).
+** [http://mbed.org/forum/mbed/topic/714/?page=1 JTAG] on mbed discussion
+*** [http://mbed.org/forum/mbed/topic/337/?page=1 Dataflash] which appear as a FAT flash drive that you copy things into to boot.
+
+Bootloading summary:
+
+There are 3 ways of loading your binary image to the LPC1768.
+* JTAG
+** Positive: Most widely supported, linux software available, four click programming (ALT+TAB to terminal, UPARROW to display 'make program', ENTER)
+** Negative: Does not work on mbed
+* Serial UART0
+** Positive: Does not need super specialized hardware, any FTDI will do.
+** Negative: Windows only (FlashMagic), unless you want to write your own software. Need to toggle buttons and click on GUI (GRAGHHH).
+* Secondary USB Bootloader
+** Positive: Does not need an interface chip, possibility of four click programming + 1 button?
+** Negative: Need to customize app note, Need? to toggle buttons, need a custom firmware loaded by another method first.
+
+MBED itself uses a secondary interface chip, which appears as a USB drive to the host pc. Putting your image there will cause it to program the main micro when reset using JTAG (not very sure, their schematic arent complete, not fully open source, the bastards). UART0 itself is also not available since it is used for serial comms to the PC.
+
+=== General Coding ===
+* [http://www.arm.com/products/processors/cortex-m/cortex-microcontroller-software-interface-standard.php Cortex Microcontroller Software Interface Standard]
+** [http://www.doulos.com/knowhow/arm/CMSIS/] Doulos CMSIS intro & tutorial
+** [http://www.keil.com/support/man/docs/gsac/gsac_cmsisoverview.htm] Keil CMSIS intro
+** [http://www.onarm.com/download/download395.asp] Download CMSIS
+
+* http://www.onarm.com/ - info on ARM
+
+* Look into bare metal C libraries
+** [http://sourceware.org/newlib/ Newlib] - seems to be pretty much the standard for bare metal systems.
+** [http://web.archive.org/web/20070929082837/http://www.embedded.com/story/OEG20011220S0058 an article] on Newlib.
+** What does the L4 people use?
+
+* Not going to use mbed library since it's closed source, while under heavy support I dont want to have magical BLOBs in my code.
+** Especially since I cant pinpoint if a bug is either from my code or their library
+** and having to wait for other people to fix it, possibly halting my thesis
+
+* Code Examples:
+** [http://ics.nxp.com/support/software/code.bundle.lpc17xx.keil/ NXP / Keil Code Bundle]. Warning, may be outdated!
+** [http://support.code-red-tech.com/CodeRedWiki/RDB1768cmsisExampleProjects Code Red] - loads of things.
+
+* Coding Standards:
+** [https://secure.wikimedia.org/wikipedia/en/wiki/MISRA_C MISRA C] - this seems to be the standard used for CMSIS as well.
+** [http://www.netrino.com/Coding-Standard Netrino]
+
+* Tips, etc:
+** [http://www.embedded.com/1999/9912/9912feat1.htm Defensive C programming]
+
+=== Internal Code Architecture ===
+
+Several modules all connected with a bus. Each module have an input and output stream, which can be enabled or disabled individually. SD Card is special in the sense that its output stream is controlled by sync controller.
+* Should there be logging exceptions? Say, if you have a gumstix attached which does HD video streaming?
+** HD video recording should be done on a gumstix's OWN sd card. And don't ask me to sync that.
+
+The 64 kB RAM might be divided into several blocks - need to think more, not sure if you can even allocate them like this:
+* Block 1 & 2 will be used for SD card write operation - 2? kB each (4 maybe?). 
+** SD cards does I/O on 2? kB blocks (doublecheck) so it would make sense to do IO on full blocks.
+** One block would receive data, when full data stream is switched to the second block and the first block is flushed. Repeat.
+** Flush operation is high priority, compared to read.
+** This might be able to be done by the DMA so the CPU can do something else concurrently? (not sure how FAT plays here)
+
+* Block 3 will be used for SD Card read operation
+** SDCard will be read during sync operation, in 2? kB blocks. The required data can then be pulled off from the block.
+** Since there's no read-modify-write operation, this model could work
+** Should be able to reduce this block size if needed
+
+* Block 4 will be used for general program RAM.
+
+* Block 5 for ethernet?
+* Block 6 for wifi?
+* Block 7 for breakout?
+* Block 8 for usb?
+
+Its actually 2kB blocks at most for write, 16 kb is the erase block. Idea still valid though, the sizes will be different. Also bigger block size means less overhead.
+
+Shutdown Sequence: When the LPC detect loss of 12V power for more then 0.2 second (arbitary), it will assume CAN power is turned off and start to shut down itself. This is mainly required to be able to finish the Sd Card write operation so as not to mess up the filesystem.
+* Flush all remaining data to SD Card
+* Send a broadcast message telling that it will shutdown due to loss of 12V (this is mainly for control car), also logged.
+* Shut down all peripherals, especially wireless.
+* Shut down itself properly (HOW???)
+** By entering an endless loop which only has one function: check 12V. By default this will do nothing as the caps discharge and no power is available. But if 12V is re-supplied within the short time the ADC will detect it and soft-reset the micro.
+*** Or use the loop to make the WDT timeout and entering continous reset - but redoing the initialization everytime might mess some things up (eg "Why on earth are there 500 log entries for 'booting device' and 'shutting down'??! "). Plus while clever it is hard to understand and therefore hard to maintain - or even hard to debug.
+
+Need to be revised since a proper backup power scheme hasn't been designed yet. Also need to figure out how to startup again?
+
+Watchdog timer - resets the system if it crashes.
+* WARNING: WDT and voltage supervisor could reset the micro while a FAT write operation is taking place! This can corrupt the entire data! Figure out solution!
+** Check datasheet and see how exactly how they work - can we put in a code snippet when they got reset?
+** [http://elm-chan.org/fsw/ff/en/appnote.html Each case does not affect the files that not in write mode open.] Yaaaay!
+
+Error reporting
+*This device is complex, thousands of things and error messages can be setup.
+* If every single error message is put under scandal_Devices the file would grow to gigantic proportions.
+* So error should be grouped together, one channel for a group of similar errors, with multiple possible messages
+** eg a dedicated channel for sd card file system error, with like 40? different possible type of messages , each specifying one error (eg if this channel sends 003, that means sd card not present, 005 means write error, etc)
+** You can send the entire fatfs errors this way, but thats overkill.
+
+=== CAN stuff ===
+* CAN driver header file in CMSIS refers to lpc17xx.c - should be LPC17xx.c (I blame Windows!)
+* [http://knowledgebase.nxp.trimm.net/showthread.php?t=134 seems like severe bug in the CAN controller]
+* http://www.armadeus.com/wiki/index.php?title=CAN_bus_Linux_driver - CAN on linux with the mcp2515.
+
+=== SD Card stuff===
+* [http://www.roland-riegel.de/sd-reader/index.html FAT implementation for AVR sd card], ported to ARM in [http://www.sparkfun.com/commerce/tutorial_info.php?tutorials_id=94 Sparkfun Bootloader]
+* [http://www.nxp.com/documents/application_note/AN10916.pdf FAT library EFSL and FatFs port on NXP LPC1700]
+* [http://efsl.be/ EFSL], referenced above. Havent been updated since 2007, presumed dead?
+* [http://elm-chan.org/fsw/ff/00index_e.html FatFS], also referenced above. Seems to be still in active development.
+* [http://www.siwawi.arubi.uni-kl.de/avr_projects/arm_projects/arm_memcards/index.html Some more stuff]
+* [http://www.robs-projects.com/filelib.html General fat32 library]
+* [http://www.sandisk.com/media/216454/appnotemmc_sdv1.0.pdf sandisk app note]
+
+* http://en.wikipedia.org/wiki/MicroSD
+* http://stackoverflow.com/questions/955587/micro-sd-card-initialization-using-spi-interface
+* http://www.benjamin-kaminski.com/?p=96
+* http://www.siwawi.arubi.uni-kl.de/avr_projects/arm_projects/arm_memcards/index.html
+
+* Note the entry [[2010_SION_Development_Progress#Memory_storage | above]], with the hardware chip that has FAT in them.
+
+Logging behavior:
+*logs this, primary key etc
+* Need to code around FAT16 / FAT32 file size issue, as a single day's log can reach massive proportions.
+** A new file is always created when device comes out of reset.
+** Split the logs by the hour, 1 file per 5 mins
+*** This means if data corruption occurs it will only affect a 5 minute period.
+** An active file is write only. You cant read/sync it.
+** When 5 mins expire write operation moves to a new file.
+** Old file will be marked for sync operation
+** When sync is finished for the file, it is left alone. 
+*** do we want the hash calculated for some whatever reason?
+*** the sync operation probably will be using hash anyway
+
+* All the files' info are tracked by one special file
+** Which file is active, which is in sync, which has finished sync
+** What if this special file got corrupted? DUN DUN DUN
+*** Check how SQLite atomic commit works, should give a solution. IIRC they use temporary files or something
+
+What happens when SDCard is full:
+* When it detects that there's less than 16? MB left on the card, it will start an erase operation.
+* It will erase old files, starting from the oldest, until there's at least 72? MB empty space in the card.
+* Send message on what it's doing, what did it erase, etc
+
+Working manual:
+*eg how often to sync data etc
+
+=== General Ethernet Stuff ===
+TCP / IP stack: lwIP or uIP?
+
+*uIP
+** + Has an app note from NXP
+** + Much more lightweight
+** - Lacks features & performance
+
+* [http://savannah.nongnu.org/projects/lwip/ lwIP]
+** + Has features
+** + Has performance
+** - Bigger
+** Need to design from scratch
+
+*Info: [http://www.mail-archive.com/lwip-users@nongnu.org/msg01956.html]  [http://www.embeddedrelated.com/groups/lpc2000/show/29805.php]
+* [http://www.sics.se/~adam/software.html Author even outlines the difference himself]
+* [http://www.usenix.org/event/mobisys03/tech/full_papers/dunkels/dunkels_html/mobisys.html Dude's paper on the subject], should read it sometime
+
+=== Wired Ethernet Stuff ===
+* Ethernet PHY
+
+=== Wireless Protocol ===
+* Big Fight: TCP vs UDP
+** No IPX, go away you cant do wireless, you're only good for playing RA2
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+|Competitors!
+|TCP
+|UDP
+|-
+|Advantages
+| Automatic re-transmit lost packets, guaranteeing data delivery
+| Simple, faster, broadcast ability
+|-
+|Disadvantages
+| Handshake protocol takes time (this might be part of the sender problem)
+| Lost packets goes missing for EVER
+|-
+| Remedy to problem
+| Tweak handshake timeouts? Tweak handshake procedures? 
+| Complete telemetry should be logged in SD Card and synchronized via TCP
+|}
+
+Right now I'm leaning more towards UDP. 
+<s>
+*Log the complete data on the solarcar and sync periodically using TCP. 
+*Stream realtime data with UDP, as it's for human viewing / monitoring only on the road. 
+**Only if TCP handshake is problematic. RMCan suggests using bluetooth as apparently they handle dropped connection better than wifi, then again they can't even get their own canlink working so take it with a grain of salt.
+*When building models download the complete data using TCP.
+*This allows control car to bugger off(refueling, buying iced coffee) while keeping all data logged
+*Broadcast allows multiple laptops in multiple cars to receive data without swamping one laptop with tcp connections
+</s>
+TCP and UDP checksums are too weak, see below. A custom protocol may be required, but it will be likely to be built on top of UDP.
+
+DECISIONS:
+* <s>The author will dual-wield both TCP and UDP as described above. So far no drawback of this method has been envisioned.</s> Reliability need to be researched more deeply.
+
+===Reliable Data Transmission ===
+* Why UDP & TCP? It has error protection, unpredictable buffer (to me), etc. How about using custom protocol over UDP for both, maybe with some cryptographic hash thrown in?
+* [http://en.wikipedia.org/wiki/Error_detection_and_correction#The_Internet This] suggests that the underlying technology already has error correction. IPv6 dropped checksuming altogether.
+* [http://tools.ietf.org/html/rfc3819#section-8 This] seem very highly relevant, and must be read.
+* [http://www.par2.net/ par2] is used by PLATO to take care of their annoying hard drives. Very reliable, can do data correction, etc
+
+=== Timestamping ===
+* Each scandal packet has a timestamp, set by the sending node. 
+** Say, does the wavesculptor packets have timestamps?
+* The sender node and SION uses reference time from the GPS node.
+* I am thinking of having 3 timestamps per packet in the end; one by the sending node, one by SION as it is received, and one by the control car as it is arrives in the strategist's laptop.
+** This is just gut feeling though, I don't have a solid reason for doing so. 
+** It might work as backups in case the timestamps get screwed like in wsc2009 - I can code SION to fall back to its internal RTC if the GPS correction doesn't work (by detecting if the correction is more than ~1 minute off)
+** Also, might be useful for synchronizing packets, if the timestamps are used as unique message identifiers.
+** Or for making a statistic on network connectivity; how many packets got delayed, for how long, etc.
+
+===Logging===
+*3 ways: Binary, plaintext, or sqlite
+* Binary is a total headache so maybe not (eg a voltage of 25000 mV is recorded as 0x61A8 binary)
+* Plaintext is easy, until you want to parse it
+* Sqlite - challenging to setup, easy to use afterwards. No parsing.
+
+TODO: Research into synchronization methods w/ scanalysis
+
+
+{| cellspacing="1" cellpadding="1" border="1"
+|-
+| Competitors!
+| Binary logging
+| Plain text files
+| SQLite database
+|-
+| Requires file system / linux
+| No
+| No
+| Yes
+|-
+| Sync method
+|
+|
+|
+|-
+| Concurrent read/write?
+|
+|
+|
+|-
+| File Locking?
+|
+|
+| 
+|-
+|}
+
+I ended up using overo so SQLITE ALL THE WAY.
+
+SQLite also allows mutiple read / write access simultaneously.
+
+so on the control car side we can have 5 strategists reading and tinkering with the same data
+
+( hold on, if Im going to make the controlcar process accesable through ethernet, should I upgrade to postgres?)
+
+==== Synchronizing Logging ====
+<s>
+* The log files will be split on 5 minute intervals.
+* The latest log file is the active file, which is being written by newly captured telemetry
+* The active file is not synchronized.
+* When 5 minute elapsed a new active file is created.
+* The last active file got in sync queue.
+* Sync operation works on the oldest file in sync queue. 
+* When a file is fully synced the sync operation moves to the next file in the queue
+* Fully synced file is left alone.
+
+So during normal operation, the active file is written all the time, while sync only happens occasionaly after a new active file is created. and the old one no longer written into. When the old one has been fully synced no synchro operation is happening unless another active file is created, pushing the previous active file into the sync queue.
+
+During iced coffee trips, the active file will be created all the time like normal, but the sync operation will lag several files behind. There will be multiple files in the queue. When ice coffee is acquired sync will began catching up working thru the queue.
+
+If you're confused, go bug the author.
+
+* Say what if it encounters an error or something and got stuck on one message, not because of network connectivity (which is normal condition) but because of software bug? Send error if backlog is longer then 30 mins?
+
+* Need to figure out how the sync operation work in a single file. a successfully synced file can be checked using checksums?
+
+* Progress of sync operation need to be logged regularly too.
+
+* This operation must be interface-independent - in case of wireless failure it MUST be doable to download data over usb.
+
+</s>
+
+SQLITE TAKES CARE OF 95% of this
+
+====Sunswift Fleet Network Diagram====
+* Internets, thru 3G or satellite
+** Control Car Router, device name & ssid <tt>control</tt>, acts as DHCP, subnet block 192.168.0.xxx (or .1.xxx?)
+*** Solar Car <tt>SION</tt>, ip 192.168.0.157 (157 = I.S.T., the kickass author's initials)
+*** Control Car <tt>captainplanet</tt>, strategist's laptop, ip 192.168.0.200 (can be changed)
+*** Other Laptops, eg on other cars, IP given by DHCP.
+
+=== EMBEDDED SOFTWARE SUMMARY ===
+* Mass storage filesystem: FAT library from FatFs, ported using nxp app note.
+
+== Technical Design Decisions - CanbridgeIV ==
+
+* A computer will receive data
+* Let's give this computer a name, say, the name of the current sunswift laptop, <tt>captainplanet</tt>
+* Normally this is the Strategist's laptop.
+* It contains Scanalysis and the strategy software
+* Currently Scanalysis is doing the plaintext logging (and I/O through canbridge2)
+* I dont like this, putting all this stuff in a huge monolithic program which can be buggy.
+* I prefer SION to communicate with a small program inside <tt>scanalysis</tt> which does and only does these:
+** Receive data from SION
+** Store them inside a SQL database for permanent archival (default implementation is SQLite, with new db file created daily)
+** Forward a copy of newly incoming data to clients, normally Scanalysis on the same computer, though another program on another car is possible. Ethernet and internet compatible.
+** ---
+** Service custom data requests from clients (eg, last 3 hour's bsoc graph)
+** ---
+** Log data sent by scanalysis to the solar car
+** Forward that data to SION (using TCP)
+** Receive acknowledgment of data sent successfully, otherwise retry (TO BE REVISED)
+* It should be able to deal with both text and binary data.
+* Functionality that involves wireless I/O should be designed so they simply stand by (thread blocked?) if no data is coming in, eg when strategist is messing with data after sunset, or in the workshop developing scanalysis, etc
+* Clients should be on a whitelist basis or similar, lest it be DDOS'd or something.
+** Any random computer sending commands to the solar car is just bad.
+* Let us call this small program <tt>CanbridgeIV</tt>, since this is the 4th revision of canbridge.
+
+
+== Testing Log ==
+
+=== One night at the workshop ===
+* Wireless works even during max acceleration/regen on the workshop.
+
+=== [[Training_Run_Report_-_2010.11.18]] ===
+* Telemetry still cuts out when motor is powered, both regen and acceleration.
+** Sender program crashes, but the ping can still be alive. Sometimes the ping cut out as well.
+** This means that most of the interference might come from the CAN bus side, as opposed to the wireless side.
+** Wireless side is not completely immune though, there has been some pingouts but it seems rarer than telem blanks.
+* Radio test was not performed, to check rf interference.
+
+Analysis:
+* Since problem is mostly with sender and not wireless link it would be useful to test wireless strength with a gumstix (which has approx same tx power as a wifi module)
+* Test with CB radios, IIRC they're 1 W which is comparable to the digi XTend
+* Contrary to bench test, telem cuts a lot in the field. Have to doublecheck by comparing the test run data with bench test data.
+* May require onboard logging on the next test, laptop + canusb + python on board should do the trick.
+* Check the CAN lines and 12V / 5V lines for noise using the mbed.
+
+Next steps:
+*Checking RF interference on high powered devices:
+** Doublecheck power rating on the radios.
+** 1W transmitter interference: Solarcar CB to Control CB
+** 1W transmitter interference, high gain receiver?: Solarcar CB to Control Radio
+** receiving 1W : Control CB to Solarcar CB
+** receiving 25W : Control Radio to Solarcar CB
+
+*Checking RF interference on low powered devices:
+** Gumstix-control car ping, high gain antenna, normal duck antenna
+** Gumstix-control car ping, high gain antenna, high gain antenna
+(gumstix antenna wont be used in the solar car, no use testing that)
+
+*Power line measurement:
+** 12V power, oscilloscope, independent power (workshop only)
+** 5V power, oscilloscope, independent power (workshop only)
+** 12V power, mbed adc, independent power mbed.
+** 5V power, mbed adc, independent power mbed.
+
+* Onboard logging with a laptop (test run only)
+** Compare transmitted data with logged data
+** Check if there's any specific power level for cutoff
+
+*Required for testing:
+** Control radio wired up
+** gumstix portable power supply
+** gumstix antenna attachment + panel antennas
+** gumstix wireless set to ping AP
+** mbed portable power supply
+** mbed CAN voltage attachment
+** scope CAN voltage attachment
+** laptop with working scanalysis + canusb
+** data from dave
+
+=== Saturday, 20 Nov 2010 ===
+At the workshop, testing with battery + wheel motor
+
+*Checking RF interference on high powered devices:
+** Doublecheck power rating on the radios.
+** 1W transmitter interference: Solarcar CB to Control CB - no noise
+** 1W transmitter interference, high gain receiver?: Solarcar CB to Control Radio - no noise
+** receiving 1W : Control CB to Solarcar CB - no noise
+** receiving 25W : Control Radio to Solarcar CB - no noise
+
+*Checking RF interference on low powered devices:
+** Gumstix-control car ping, high gain antenna, normal duck antenna - no missing. This is beaming to workshop router.
+** PLEB-AP ping do not break either
+** Telemetry cut out twice. In both cases wifi was still going strong.
+*** In both cases the sender process was still running! Restarting sender AND scanalysis fixes telemetry. Not one, only both.
+
+*Power line measurement:
+** 12V power, oscilloscope, independent power - zero noise, just a single spike which should be caught from TVS anyway
+** 5V power, oscilloscope, independent power - zero noise. The PLEB has an internal regulator from 12V; dave you lies D:
+
+*Required for testing:
+** Control radio wired up - done
+** gumstix portable power supply - done
+** gumstix antenna attachment + panel antennas - done
+** gumstix wireless set to ping AP - NOT DONE, need someone's router!
+** mbed portable power supply - done
+** mbed CAN voltage attachment - done
+** scope CAN voltage attachment - done
+** laptop with working scanalysis + canusb - NOT DONE
+** data from dave - NOT DONE
+
+== Licenses, Laws, Copyrights, & Regulations ==
+* Wifly module is certified blah blah
+* FATFs is licensed free bsd like blah blah, copyright microsoft blah blah, long filename not used blah.
+* Example codes is free blah blah
+* Compiler toolchain used is copyright blah blah
+* what else
+
+== SION User's Guide ==
+''Main Article: [[2010_SION]]''
+
+Not gonna be located here, go back to main page. This page is for people who are interested in how things work under the hood.
+
+[http://www.eevblog.com/2009/09/14/eevblog-31-microcontroller-datasheet-utopia/ One Page Manual] should be written so we can refer to things easily on the road.
+
+== Potential Works on Support Car Networks ==
+*Embedded server on control car, which does:
+** Video recording from supportcars (x264 hell yeah)
+** Audio chatter recording
+** IRC server
+** Sunswiki read-only mirror?
+** Music streaming w/ integrated rickrolling feature (or riverside, whichever suits your taste)
+
+* Standarized subnet 
+** a router in control 
+** everything including the solarcar connect to the router AP
+** Quality of Service setup to prioritize message for solarcar
+** uplink to internets
+
+* Inter-support car WLAN networking
+** UDP broadcast telemetry info
+** TCP connection for above server services
+** Inter-support car LAN party. Winner get free pauls iced coffee, loser must eat with chilli sauce
+** Need to pay attention to overcrowding the wireless spectrum?
+
+* GPS in each support car allows for fleet management (distance, formation, etc)
+* Google earth mapping?
+
+==Thesis writing stuff==
+
+===IMPORTANT STUFF===
+* [http://www.cse.unsw.edu.au/~gernot/style-guide.html Gernot's style guide.] Long!
+* [https://www.disy.cse.unsw.edu.au/theses/#fut Nicta thesis regulations.]
+* [http://cgi.cse.unsw.edu.au/~kevine/thesisguide.html Another style guide]
+* [http://www.phys.unsw.edu.au/~jw/thesis.html Joe Wolfe's PhD thesis guide]
+* [http://www.mech.unsw.edu.au/content/userDocs/BE_Thesis_Handbook_2010.pdf Mech Eng Thesis Handbook]
+
+==='Helpful' guides===
+*Choosing title: http://www.phdcomics.com/comics/archive.php?comicid=718
+*The thesis outline: http://www.phdcomics.com/comics/archive.php?comicid=715
+*Abstract: http://www.phdcomics.com/comics/archive.php?comicid=1121
+*and beware of: http://www.phdcomics.com/comics/archive.php?comicid=405
+

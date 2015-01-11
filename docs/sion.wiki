@@ -1,0 +1,166 @@
+*Name: SION - Sunswift Ivy Observer Node
+*Designed by: Irving S. Tjiptowarsono
+*Checked by: <Checker's name>
+*Year: 2010
+*CVS Project Name: [http://sunswift.unsw.edu.au/repos/cvs/sion/ sion] (OUTDATED)
+*Scandal ID: NONE (0)
+
+== Description ==
+SION is a wireless telemetry system designed to replace the aging PLEB in the Sunswift IV solar car.
+The system consists of a CAN to Wi-Fi node in Sunswift IV, which connects to a wireless access point (WAP) in the chase vehicle.
+The WAP is in turn connected to the strategist's laptop via Ethernet.
+
+Its advantages over the PLEB includes lower power consumption and on-board data logging.
+PLEB is also non-replacable as it relies on the StrongARM SA-1100 made by ''Digital Equipment Corporation'''.
+Furthermore, the last working PLEB unit broke down in December 2010, days before the Guiness land speed record.
+
+Internally, SION uses a LPC1768 and a Gumstix Overo Air, coupled with a custom power supply.
+All custom software was written in C, with SQLite used for datalogging.
+This allows easy query of telemetry data by node or channel.
+
+SION is designed to work with extended CAN packet used in Scandal (with 29-bit header). 
+It also has code to translate Tritium's standard CAN packet (with 11-bit header) into Scandal packets, 
+which provides a uniform data format to work with.
+
+While SION is designed to handle Scandal protocol, it does not run a full copy of Scandal.
+SION is designed to not rely on any specific Scandal features, instead it is designed to transmit 29+64 bit packets of data from CAN to Wi-Fi.
+In theory, this allows SION to work with any CAN implementation in the wrld, and even understood them with modifications.
+However, it has not been tested for this purpose.
+
+== Features == 
+''Main Article: [[2010_SION_Development_Progress]] and [[2010 SION Development Progress R2]]''
+
+* CAN to Wi-Fi transceiver
+* Data logging both on-board the solar car and in the chase vehicle.
+* Data logged in SQLite database, allowing easy query based on node and channel type.
+* Tritium to Scandal protocol converter
+* Electrical isolation to the CAN bus
+* Backup power to prevent corruption during data logging
+
+== Status ==
+''Main Article: [[2010_SION_Development_Progress_R2]]''
+
+* Development complete. There are two units, version 1 and 2.
+* Some features originally envisioned were not implemented due to lack of time. This includes:
+** Log synchronisation
+** automatic log purging
+** SPI communication to handle high-speed CAN
+** CC-1100 transceiver to interface with the TI Chronos watch.
+** Setting SION onboard clocks using GPS timestamp data.
+** Automatic capacitor discharge after the SEPIC converter gives out.
+
+== Hardware description ==
+
+=== Data chain ===
+
+The data in the CAN bus comes through the SN65HVD232 CAN transceiver.
+It is then transmitted through an IL712 digital isolator to the LPC1768.
+This microcontroller acts as a CAN to UART interface.
+It also translates the Tritium protocol to the Scandal protocol.
+
+The data travels through the UART interface to the gumstix, where it is logged and transmitted through Wi-Fi.
+Gumstix Wi-Fi is attached to a panel antenna which transmits the signal to a WAP in the chase vehicle.
+From there, it travels through Ethernet into the laptop used by the strategist and a receiving software (see software description below).
+Transmission of data from the control vehicle to the solar car travels through the same path.
+
+There is reason for utilising a powerful Cortex-M3 for a simple CAN to UART translation.
+I initially planned to use the LPC1768 as the main microcontroller in SION, without a gumstix.
+When I made the decision to switch to a Gumstix, I needed a way to interface the CAN bus to it.
+The only standalone CAN controllers on the market are the Philips SJA1000 and Microchip MCP2515,
+both of which may cause unnecessarily high number of interrupts to the Gumstix.
+Hence, I made the call to re-use the LPC1768 as a simple CAN to UART converter.
+This is because I have researched the LPC1768 extensively, as opposed to choosing and redesigning around a new, unknown microcontroller.
+
+=== Power Supply ===
+
+SION utilises a custom 3-stage power supply to provide electrical isolation and backup power.
+Backup power is used to prevent data corruption in datalogging due to sudden power failure.
+This is necessary since the telemetry system in Sunswift IV is turned off by removing power through the CAN bus.
+Electrical isolation is used to protect the onboard database and electronics in case of accidental spikes / short circuit through the CAN bus.
+
+The first stage consists of a TDK-Lambda CC10-1205SF-E Isolated DC/DC converter. This converts 12V from the CAN bus to 5V and provides isolation.
+
+The second stage is based on an LTC4425 Supercapacitor charger, which does charge balancing on two supercapacitors in series.
+This provides the storage necessary for backup power.
+
+The third stage is based on an ADP1621 Boost converter, used in a SEPIC configuration. This allows a constant 3.3V output from both the 5V source and a discharging supercapacitor, which will drop in voltage as it discharges.
+
+== Software description == 
+
+=== Overview ===
+
+There are two main programs in the repository. 
+
+One is called sion-sender, and its job is to listen to CAN packets, records them, and forwards a copy to the destination.
+Data is transferred using UDP sockets, which do not have time and complexity of handshakes of TCP.
+TCP also ensures data arrives in order, while for our purpose we want the latest data to be prioritised.
+
+The program in the destination is called ciel_receiver. It receives data form the source and logs them in another database.
+It also opens another UDP socket for interfacing with another telemetry program; in our case we used it to interface with Scanalysis, a telemetry monitoring program.
+This functionality can be extended to broadcast telemetry values to the entire fleet if we want to.
+
+=== CAN Log Database Structure ===
+* SION records the CAN messages in a SQLite database.
+* The database format is identical for both the onboard and destination database.
+* New database files are created every new day. This is precaution against data corruption (in addition to ext3 journalling and sqlite3 atomic commit), and to keep the database in manageable files, which can be deleted partially to free up space.
+* They are named YYYY-MM-DD_canlog.sqlite, with the dates correspond to the UTC date/time of file creation according to the clock of the creating system. This is not necessarily the same as the data contained within, such as in the case where the SION onboard clock was not set properly.
+* Each db file contains one table: canlog
+
+* canlog is the raw can logs. It has 9 columns, as follows:
+# packet_number : CAN packet ID. Rises sequentially from 1. INTEGER PRIMARY KEY AUTOINCREMENT.
+# priority: Scandal priority. INTEGER.
+# message_type: Scandal packet type. INTEGER.
+# source_address: Scandal node address. INTEGER.
+# specifics: Node Type / Channel Number / etc. INTEGER.
+# value: 32 bit scandal value. INTEGER.
+# scandal_timestamp: last 32 bit of # of miliseconds since UNIX epoch. INTEGER. Generated by nodes.
+# ciel_timestamp: Same as scandal_timestamp, but generated by ciel_receiver.
+
+These correspond to the Scandal protocol definition, and allows instant query against a particular node or channel.
+See David Snowdon's thesis for more explanation on Scandal.
+
+== SION User's Guide ==
+
+=== Required hardware ===
+* SION
+* Wireless Access Point
+* Laptop with the SION repository checked out and a working C toolchain.
+
+=== Control Car setup ===
+''Main Article: [[Control Car Telemetry]]''
+
+=== Access Point Settings ===
+SION tries to connect to an AP on boot. The AP settings should be like this:
+
+* ssid: sunswift-control
+* security: wpa2-personal
+* encryption: AES
+* Password: adelaide
+
+=== Operation ===
+* Connect SION to solar car and antenna.
+* Configure wireless access point
+* Clone the repository to a laptop, and compile ciel_receiver.
+* Run ciel_receiver
+* Turn on solar car
+
+If everything works properly, you should see data printed on the console screen.
+You can now connect to ciel_receiver and receive data.
+
+== Errata  ==
+SION does not have any script to delete old data at the moment. This is a ticking time bomb since it will fill up the SD card sooner or later (my calculations indicate something like 2-4 weeks of a typical WSC day). You can make a script that checks free space on startup then delete the oldest database file once it crosses a certain threshold. [[User:Irving|Irving]] 21:53, 2 December 2011 (EST)
+
+With new hardware, the easiest way to replace this thing is to use a beaglebone. Cortex A8, integrated CAN and ethernet on chip, integrated usb-serial & jtag debugger. Allegedly a wifi cape is in the works, else you can always hook up a 900MHz radio modem. All you need to do is design a cape with our CAN connector / transceiver and power supply circuitry - you can take the power backup circuitry from SION if you want, it works (except the auto discharge on 3rd stage, untested). Integrated CAN also means you should be able to get 1Mbit/s completely.
+
+Software side, you can use sion_sender but there are several mods to be made:
+* Add a feedback code so stuff that get sent to the can bus is also copied to the receiver thread. This was implemented in the lpc1768 but you won't have that in a beaglebone.
+
+* Write code to interface with the onboard CAN controller. May or may not use pf_can? or whatever the can socket interface is named.
+
+* CAN messages may generate a lot of interrupt, so make sure you test it with a packet generator. Potential solutions include DMA and rtlinux.
+
+You don't really need to use the debian or my custom kernel, there's nothing special in it - just disabling unnecessary parts (eg pandaboard, kernel module support) and making sure that needed stuff is built into kernel. No modules since the system is static.
+
+[[Category:pcb_designs]]
+[[Category:Awesomeness]]
+[[Category:Made by awesome people]]

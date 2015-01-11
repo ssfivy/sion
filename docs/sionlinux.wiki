@@ -1,0 +1,239 @@
+Notes on all things done to the standard Linux install of [[2010_SION]].
+
+Put on separate page due to predicted amount of content.
+
+See also [[2010 SION Development Progress]] and [[2010 SION Development Progress R2]] for additional info on project.
+
+== Installing a basic OS ==
+A lot of these comes from [http://vincent.stehle.free.fr/omap/ here] and [http://elinux.org/BeagleBoard#Source here].
+
+The OS installed is Debian Squeeze with a custom kernel. Lenny and earlier does not have the wireless driver, though everything else is fine too.
+=== Build machine setup ===
+You need a chestnut or any other gumstix expansion board that has onboard ethernet, since this is a netinstall.
+
+Some nice tools to have:
+ sudo apt-get install vim wget libncurses5-dev
+
+Download and install CodeSourcery ARM GCC Lite, GNU/linux version [http://www.codesourcery.com/sgpp/lite/arm/]. Should be straightforward.
+
+Install u-boot. While you can use prebuilt u-boot binaries (see below), you need mkimage installed on your system to create a custom kernel.
+
+=== Bootloaders ===
+OMAP uses two stage bootloading. First stage is called MLO / X-Loader, and its only purpose isloading the second bootloader - no config needed.
+
+The second bootloader, u-boot, is configureable, mainly in environmental variables. You can also pass stuff to the kernel, using setenv.
+
+Since we're not going to customise any of the bootloaders from scratch, you can simply grab them off the gumstix prebuilt images site (which seems to always change every now and then, so I can't link directly but it's not hard to find)
+
+You should get MLO and u-boot.bin this way.
+
+u-boot stores variables on the overo onboard nand, so if something screwed up is already there your thing may not work. To clear the onboard nand from u-boot prompt:
+
+ nand erase 240000 20000
+
+
+Some stuff you might want to change:
+
+ setenv bootdelay 1
+ setenv bootargs console=ttyO2,115200n8
+ setenv console ttyO2,115200n8
+ saveenv
+
+* bootdelay reduces wait time to enter uboot console to 1 seconds - reduces boot time by 4 seconds.
+* console settings is from linux menuconfig -> Device Drivers -> Character devices -> Serial Drivers -> Console on OMAP Serial Port -> help
+
+
+If you can't see the full lines, do CTRL-A W on minicom to enable line wrapping.
+
+=== Kernel ===
+AKA Hardcore - the kernel config file (for compilation) can be found at [[Image:2010 SION Linux Config.zip]].
+
+Kernel source used: [http://www.linux-australia.lkams.kernel.org/pub/linux/kernel/v2.6/linux-2.6.37.3.tar.bz2 2.6.37.3]
+
+
+Some important kernel configs, make sure they're there:
+* General Setup
+** CC tool prefix: arm-none-linux-gnueabi-
+** Local version: -irvingcustom
+** Kernel.config support
+** Enable access to .config through /proc/config.gz
+** Initramfs/initrd supports
+** Do not optimise for code size?
+* Enable the block layer
+** IO Schedulers
+*** Default IQ Scheduler: CFQ?
+* System Type
+** ARM System Type: TI OMAP
+** ARM erratas...?
+** ARM Errata: Data written to L2 cache can be overwritten with stale data: No?
+*CPU Power Management: Enable all suboptions
+** Default CPUFreq Governor: Powersave
+*Device Drivers
+**Network Device Support
+*** Wireless LAN
+**Character devices
+*** Serial drivers
+**** OMAP Serial port support
+**** Console on OMAP Serial Port
+** SPI Support
+*** MCSPI Driver for OMAP
+** Hardware monitoring support - SUPER AWESOME OPTIONS, should be really useful for future reference
+** MMC/SD/SDIO
+*** Assume MMC / SD cards are unremovable?
+** RTC
+*** DO NOT tell it to set system clock from RTC?
+
+*File Systems
+** FUSE support: built in
+** Native Language Support:
+*** ISO8850-1
+*** Codepage 437
+*** Japanese (Shift-JIS)
+*** ASCII
+
+and many more... There's lots of other options I don't know, leave them alone.
+
+If you want to configure kernels from scratch:
+ make distclean
+ make ARCH=arm omap2plus_defconfig?
+ make ARCH=arm menuconfig 
+
+Otherwise just copy the .config file, then you can run this to compile:
+ make ARCH=arm uImage
+
+This requires u-boot to be installed in the build machine, for mkimage. The resulting uimage is in $KERNELROOT/arch/arm/boot/
+
+=== Initrd ===
+Get the ramdisk image [http://ftp.debian.org/debian/dists/stable/main/installer-armel/current/images/versatile/netboot/ here]. You need to convert this into u-boot image, using this command:
+
+ mkimage -A arm -O linux -T ramdisk -C gzip -n initramfs -d ./vmlinuz-2.6.32-5-versatile ./uInitrd
+
+=== Performing the installation ===
+Now we have 4 files:
+ * MLO
+ * u-boot.bin
+ * uImage
+ * uInitrd
+
+Prepare a bootable SD card according to gumstix instructions. Copy the 4 files to the fat boot partition, starting with MLO. Sync and unmount. Put sdcard into gumstix, boot and enter u-boot prompt to set some arguments and specify how we boot:
+
+ setenv bootargs console=ttyO2,115200n8
+ mmc init; fatload mmc 0 0x80300000 uImage; fatload mmc 0 0x81600000 uInitrd; bootm 0x80300000 0x81600000
+
+Basically, it sets the correct console, inits the sd card, loads kernel and ramdisk, then hands thing over to kernel, telling it to go to ramdisk after it's done its stuff. The ramdisk then starts the debian installer. Things should be easy from here on. Dont ask me about the magic numbers, I'm as clueless as you are. This only needs to be done once, since we want to go into ramdisk only this time.
+
+Default setup:
+* No kernel installed (we already have one)
+* system pack : basic system only, do not install the desktop managers, web servers etc
+* No package survey
+* No bootloader installed (again, already have one)
+* hostname: sion
+* user: root
+** password: adelaide
+* user: irving
+** password: isawesome
+
+== Post-install setup ==
+Now we have a working OS.
+
+=== Loading kernel modules ===
+
+Go back to your kernel directory. We need to compile and copy the modules.
+
+ make ARCH=arm modules
+ sudo make ARCH=arm modules_install
+ cd /lib/modules
+
+You should see a folder named 2.6.xx.x-irvingcustom there. These are modules for your custom kernel. Copy this manually to the SD Card rootfs, under /lib/modules. 
+
+....how to load.
+
+
+=== Required packages ===
+You need to add the non-free repository (change the link and distro to whatever you're using):
+
+ echo deb http://mirror.aarnet.edu.au/debian/ squeeze non-free >> /etc/apt/sources.list
+
+Install additional packages:
+
+ apt-get install vim minicom python-serial openssh-server wireless-tools lshw libertas-firmware wpasupplicant psmisc w3m
+
+Some packages in debian default are not configured to my liking. Specifically, busybox does not have hwclock module.
+
+=== Time ===
+
+The hwclock program shipped with debian does not work correctly in overo. Specifically, it cannot update the hardware RTC, even though it seems to be able to read it just fine. You need to use hwclock from busybox, like [http://busybox.net/downloads/binaries/latest/busybox-armv4tl this one].
+
+To change system + hardware time is something like:
+ date -s "21 May 2011 21:33"
+ ./busybox hwclock -w 
+
+TODO: FIXME: Deal with time zones. We want system time midnight to roughly correlate with midnight solar time.
+
+RTC support and the TWL4030 RTC should be enabled in kernel.
+
+=== Security ===
+
+There should be one user / password combination setup during install. See install section.
+
+* Set both PermitRootLogin and PermitEmptyPasswords to no in /etc/ssh/sshd_config. This prevents remote attack in case of other solar teams being pricks.
+
+
+
+=== Startup Configuration ===
+
+* Reduce /etc/motd so there's not much stuff in there; dont want to see lots of crap.
+* SION does not have wired ethernet, so wireless ethernet must be set to connect automatically. The sion executables have to be started automatically too. 
+** Done for now, need to make a script to do all this stuff.
+** [http://www.debian-administration.org/articles/28 how to do it]
+** [http://wiki.debian.org/LSBInitScripts More info here]
+** Since sion_sender will never quit, don't forget to put it in the background, otherwise you'll never get a login prompt!
+
+=== Network Configuration ===
+The gumstix should be set to connect to an access point with the following info:
+
+* ssid sunswift-control
+* password adelaide
+
+on /etc/network/interfaces, if you're working with the gumstix prebuilt image :
+* uncomment eth0 if you need to, otherwise keep it commented. Wastes boot time looking for dhcp (I think).
+* uncomment entries for wlan0 with wpa2 encryption 
+** The default entries are incorrect!:
+*** -w doesn't exist
+*** -Dmarvell should be -Dwext
+*** We don't want dhcp. 
+
+Doing the steps above should make the entry look like:
+
+ iface wlan0 inet static
+      address 192.168.0.20
+      netmask 255.255.255.0
+      pre-up wpa_supplicant -Dwext -iwlan0 -c/etc/wpa_supplicant.conf -B
+      down killall wpa_supplicant
+
+Create /etc/wpa_supplicant.conf and fill it with this:
+
+ ctrl_interface=/var/run/wpa_supplicant
+ ctrl_interface_group=0
+ eapol_version=1
+ ap_scan=1
+ fast_reauth=1
+ 
+ network={
+       ssid="sunswift-control"
+       proto=WPA2                 # try WPA RSN if you WPA2 fails
+       key_mgmt=WPA-PSK
+       pairwise=CCMP TKIP
+       group=CCMP TKIP
+       scan_ssid=1
+       psk="adelaide"
+       priority=10
+ }
+Documentation for wpa_supplicant.conf is [http://hostap.epitest.fi/gitweb/gitweb.cgi?p=hostap.git;a=blob_plain;f=wpa_supplicant/wpa_supplicant.conf here].
+
+
+To start / stop network interfaces:
+ ifup wlan0
+ ifdown wlan0
+
+Reference: [http://wiki.gumstix.org/index.php?title=Overo_Wifi&oldid=4858#WPA_encryption]

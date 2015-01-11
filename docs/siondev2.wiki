@@ -1,0 +1,483 @@
+More research notes for Irving's [[2010_SION]], after the [[2010 SION Development Progress | previous page]] was too full.
+
+This document is divided as follows:
+# Status - latest project status
+# Hardware - hardware notes (for the device that will go in the solar car)
+# Software - software notes, for the program that will be inside the gumstix overo.
+# Server - control car software
+
+== Status ==
+* Doing PCB routing. Chose a bigger box to minimise routing time at the expense of size and elegance. Have self-proofed schematic designs, Et said he'll proof it too.[[User:Irving|Irving]] 20:07, 11 December 2010 (EST)
+
+* Software side stuck on crosscompiling. Hardware side stuck on openocd.
+* Problem description, completely reproducible:
+# PSU report 20 mA current consumption, fresh after powerup. OpenOCD reports target not halted / something is running. Under this status, if I were to halt and flash program, everything will work successfully. Current will hover around 20mA as displayed through PSU, all through programming etc. Power on reset also works.
+# We reset the lpc. Now we get LED blinking. PSU reports 70 mA current consumption, jump from 20.
+# HOWEVER! halting the lpc now will bring current down to only 40-50 mA!! Programming while this happens will seem to work, but reset will ALWAYS throw an error. Current consumption will stay at 50mA. Power on reset also does not run anything, but will bring down current consumption to 20 mA.
+# Go back to #1.
+
+* Both problem solved. Crosscompile sqlite from source, openocd need reset lines explicitly enabled.
+
+* Stuck on SPI comms, on software. SEPIC not working on hardware.
+* Found SEPIC hardware replacement.
+* Linaro image results in MY GUMSTIX REFUSING TO BOOT ON MY PCB
+** though palo board is still fine - WTF
+
+* SION WORKS WOOOOOOOOOOOOOOOT
+* Sort of done:
+** <s>design power supply</s> - [[Image:2011 SION SEPIC Revision.zip]]
+** <s>clean up code</s> - sort of... structure is OK, code, well I'm still messing with stuff
+** <s>revise build system (how to auto-compile for 2 archs?) </s>- DONE
+** <s>Make the wifi autoconnect on boot</s> - Sort of done, can use cleanup / standarization
+** <s>start sion binary on boot</s> - same with wireless
+** LPC1768 circular buffer seems to be working fine, should review code with someone else.
+** RTC sort of works, need to move to busybox hwclock + test
+** SEPIC revision works, but not the schmitt trigger....
+
+*todo:<s>
+** powah management - need OMAP kernel branch + PM branch
+*** [http://www.mail-archive.com/linux-omap@vger.kernel.org/msg44117.html OMAP] [http://www.spinics.net/lists/linux-omap/msg44393.html FFFFFFFFUUUUUUUUUUUUUUUUU] (hint:check the date)
+*** PM branch have not been updated since like, april 2009.
+*** Mainline branch does not have any sort of DVFS. wtf. How did the n900 even last a day?
+*** What is this cpufreq thingy? </s>
+** <s> RAM circular buffer on gumstix? </s> no need.
+** <s>fix lpc circc buffer to not send stuff until sion is ready</s> Done hack-ish, need proper GPIO trigger to handle overo reboots.
+** <s> shutdown sequence </s> SION now syncs database on shutdown.
+*** <s>Shutdown: Figure out how to clear GPIO interrupt in LPC.</s> It will only shut down once, not automatic turns on, but IT WORKS.
+** <s>reverse direction (control -> solarcar)</s>
+** auto synchronisation
+** Create SQLite index?
+** confirm that these settings were being followed on the OS: http://www.sqlite.org/lockingv3.html
+** logging control car telemetry (seven)
+*** Wind speed sensor cable (and possibly sensor itself) broken, ffffuuuuu
+** move to SPI
+** add checksumming
+** bind variables on sqlite
+** read only flag on sqlite connection
+** timesync updates system time
+** cfg80211: Calling CRDA to update world regulatory domain
+** I2C power measurement IC
+** deleting databases when it get too full in sion...
+** making use of the AHB SRAM in lpc1768 (extra ~1800+++ can message capacity in input buffer, maybe unusable since it's not contiguous memory...)
+** and more...
+<s>
+*TODO:
+** MAJOR BUG: LPC will lock up if sion_sender is restarted. This is because sion_sender will send the 'enable sending' character, but the LPC is now set to expecting CAN packets, and will block until it timeouts. When it timeouts, the rest of the code proceeds normally, except there's now a mangled packet inside the out CAN buffer, which get passed to the CMSIS CAN_send function which does sanity checking. Check will fail and the code goes into safety infinity loop (in debug_framework).
+*** SOLUTION: Enable switching between these two states indefinitely by either using some sort of fail-safe handshaking? or hardware activation line (GPIO-ADC).
+*** TEMP SOLUTION: use a different header for each type of message. DUH.
+</s>
+
+* Todo:
+** Fix the 30s delay - inspect onboard sqlite log, suspect the lpc
+** Make ciel_seven work with wind speed & control gps
+** Finish sync
+** Test full acceleration and observe if loss, then test with different antennas(duck/panel ) + AP(netgear/new netgear/ linksys ertos).
+** Test broken connection + sync by forcibly unplugging WAP.
+** Revert to Kernel 2.6.34 (latest one before some kind of power regression - see phoronix)
+** [http://www.reddit.com/r/linux/comments/hyjxi/i_love_linux_error_messages/]
+** Autopurge old can logs to prevent sdcard filling up - shell script:
+ ls -1t|tail -1
+ 
+ 1 lists the output of ls as a column
+ t sorts it by time
+ tail -1 lists the last item in the list
+ 
+ irving@chobits:~/sion/build$ ls -lt
+ total 1376
+ -rwxr-xr-x 1 irving irving 604883 2011-05-17 15:51 ciel_receiver
+ -rwxr-xr-x 1 irving irving  36160 2011-05-12 23:26 sion_can.bin
+ -rwxr-xr-x 1 irving irving 762017 2011-05-12 21:41 sion_sender
+ irving@chobits:~/sion/build$ ls -1t|tail -1
+ sion_sender
+ irving@chobits:~/sion/build$ rm -v `ls -1t|tail -1`
+ removed `sion_sender'
+ irving@chobits:~/sion/build$ ls -lt
+ total 628
+ -rwxr-xr-x 1 irving irving 604883 2011-05-17 15:51 ciel_receiver
+ -rwxr-xr-x 1 irving irving  36160 2011-05-12 23:26 sion_can.bin
+ irving@chobits:~/sion/build$
+
+Todo v3:
+* Revert LPC1768 to stock build - DONE
+* Revert sion_sender to stock build - DONE
+* enable onboard logging on sion_sender - DONE, text
+* Add text log onboard and offboard - DONE
+* check SQLite open permissions / modes
+* revert to single name, not per-day filename (temp) - DONE
+* Add Debug messages from LPC1768 
+* Create GUI to plot delay (req. GPS)
+* Create GUI to monitor data, comparing text log and sqlite log.
+
+== SION Hardware ==
+* Gumstix overo / linux
+
+* LPC1768 CAN bugs: http://knowledgebase.nxp.com/showthread.php?t=134
+* sample codes: http://knowledgebase.nxp.com/showthread.php?t=727
+* LPC11C14 CAN: http://knowledgebase.nxp.com/showthread.php?t=726
+
+* more CM3 info: http://support.code-red-tech.com/CodeRedWiki
+
+* OpenOCD brouhaha:
+** http://danielromaniuk.com/?q=node/19
+** http://www.eluaproject.net/en_tut_openocd.html
+** http://www.siwawi.arubi.uni-kl.de/avr_projects/arm_projects/openocd_intro/index.html
+** HOW TO INSTALL: [http://www.plugcomputer.org/plugwiki/index.php/Setting_Up_OpenOCD_Under_Linux]
+
+How to program using openocd:
+# run openocd daemon with sudo in the folder where the binary exists.
+# $telnet localhost 4444
+# >reset halt
+# >flash write_image erase mbed_test.bin 0x0 bin
+# >reset
+
+
+=== SEPIC Problems ===
+
+* This datasheet has some more info on the working of SEPIC, not much but can be used as rule of thumb: LM2698MM-ADJ
+** Suspect inductor current saturation, will try with CTX10-4-R (need to order from farnell...)
+** That's not it, still doesn't work. It looks like derating... since it CAN supply 1A just fine at 2.7V.
+
+Some possible alternatives:
+<s>
+* Linear:
+** LT1619 - simple PWM controller, might be able to play with Rsense...
+
+* TI:
+** TPS66131 - SEPIC specific IC, Don't think it has enough current, see graph
+** TPS66175 - complex
+** TPS43000 - COMPLEX
+
+* Maxim is hopeless
+
+* National:
+** LM2698, schematic seems 500mA only, good equations though.
+** LM3478 is interesting, it has example circuit with essentially the same components I'm using, but it outputs 5V / 1A
+
+* Onsemi is hopeless
+
+* Microchip has MCP1650, which has an example for 1A, 3.6 V LED driver SEPIC.
+
+* STM is hopeless
+
+* Analog Devices
+** ADP1621 has example circuit that outputs 3.3V at 2A !!!!! and can be configured to run from 1V?
+
+* Micrel
+** MIC2196 has an eval board that outputs 5V / 1A
+
+Summary:
+* Look into the Analog Devices example, identify key parameters.
+* Compare with Micrel, Microchip and National.
+* See if we can implement it with the Linear PWM driver (AD = need to calculate 1000 equations...)
+
+</s>
+
+* ADP1621 WORKS FINE, tested, confirmed that it maintains 3.3V at up to 1.5A
+* Still a problem with auto discharge circuit not working as expected.
+
+==== Erratalist for SEPIC board ====
+* 17K4 ressitor part/footprint incorrect - FIXED
+* 26K1 resistor part/footprint incorrect - FIXED
+* 10K resistor part incorrect - FIXED
+* U4 footprint incorrect - IRRELEVANT, CIRCUIT REDESIGNED
+* D1 footprint incorrect - FIXED
+<s>
+* LTC1540 is inadequate, ffffuuuuuuuu
+** Since the supercap voltage bounced back up beyond the schmitt trigger hysterisis, the SEPIC turns on again anyway....
+** I need 1V hysterisis: 
+*** turn off at 2.5V
+*** turn on at 3.5V
+** According to calculator [http://www.random-science-tools.com/electronics/schmitt-trigger-calculator.htm here], I can just use a comparator with some resistors + reference value, yay
+</s>
+* Will use an SCR, so I can just trigger it and let it drain the cap by itself.
+
+=== PCB v0.1 Errata ===
+<s>
+* '''LT1308B, WHY YOU CURRENT LIMIT AT 500mA AND NO TELL EVERYONE'''
+* SEPIC regulator should have Schmitt trigger on the enable pin - when the voltage falls, once it falls below a threshold, say 2V , DO NOT TURN OUTPUT ON until output rises above say 2V2. For some reason there's ringing on the supercaps... may be the particular reg though.
+</s>
+See SEPIC board erratalist above.
+* C83 ground is not between power supply and load. - IRRELEVANT
+* R??? (173K) Digikey part number is incorrect - FIXED
+* D3 to U11 -Vin track sits too close to one of the shield pads / tab thing. 
+* LPC1768 supervisor should be within lpc1768 schematics. - NO SPACE, WONTFIX
+* All 10uF MCCT-CASEA caps have unpolarised footprints! - TIME CONSTRAINT, WONTFIX
+* All 1210 footprints are incorrect! - WTF WAS I WRITING, WONTFIX
+* C31 footprint is incorrect, there's no way you can fit 100uF into CASEA. - FIXED TO CASED
+* Reset button should have hardware debouncing - TIME CONSTRAINT, WONTFIX
+* Should add test point to P1[27], for CLKOUT. - FIXED
+* JTAG RST signal should be SRST - system reset. - FIXED
+* Should add note on capacitor crystals: they are values from data sheet, thou shall not change them. - FIXED
+* <s>LED on USB OTG Power</s> removed
+* LED should be one from LPC, one from Gumstix - ADDED ANOTHER PANEL LED.
+* There should be >1 GND test points, since you can't fit multiple probes on one. They must be spaced apart. - FIXED
+* Add termination resistor, switchable by mosfet + optocoupler? (the diff signals are positive to GND, so it'll work) - SILLY IDEA, WONTFIX
+* R22,C35 should be real close to the overo pins.
+* USB OTG should be <s>connected to power.</s> WILLREMOVE
+* Add reset button for LPC - accesible from outside - TIME CONSTRAINT, WONTFIX
+* move Overo reset button to be accesible from outside - TIME CONSTRAINT, WONTFIX
+* <s>Connect POWERON / SYS_EN to something???  (Needs double checking)</s> Not needed
+* Overo should be positioned such that the SD card is swappable without opening the box.
+* <s>Add scotty diode on the 3V3 line that supplies the LPC circuit, to prevent jtag debugger from trying to power the overo </s> Not needed.
+* SPI1_NIRQ is connected directly between the LPC and the gumstix, WITHOUT VOLTAGE LEVEL TRANSLATOR. (its useless anyway) - FIXED, now is a jumper.
+* SPI1_NIRQ (P0.21) is now used as GPIO interrupt connected to VSENSE pulled up to 3V3 with 47k resistor. - FIXED
+* Move the two LEDs on the overo to the specific GPIOs on the overo / OMAP that shows SD card activity and heartbeat. (see beagleboard) - Too cramped, WONTFIX
+* Add an external LED to show network activity / connectivity (if ping activity to control car - run another program to do it)
+** add loads of external LEDs and reset switches on the endpanels, connecto with ribbon cables
+** list: 3V3, 12V, lpc1768status (blink), can tx, can rx, lpc1768 reset, gumstix POWERON, gumstix online, ping(blink), gumstix reset
+
+=== Shopping list for SION R2, all digikey===
+<pre>
+Order one of these:
+445-2435-ND
+768-1024-1-ND
+LTC4425EMSE#PBF-ND
+576-1288-1-ND
+
+Order two of these:
+493-3293-ND
+568-4796-ND
+ADP1621ARMZ-R7CT-ND
+RNCF1206BKC11K3CT-ND
+CRT1206-BY-1002ELFCT-ND
+MAX6037CAUKADJ+TCT-ND
+MAX6037CAUKADJ+TCT-ND
+S6006DS2CT-ND
+718-1780-1-ND
+PCD1488CT-ND
+
+Other quantities:
+6x 718-1494-1-ND
+10x 490-1709-1-ND (min)
+3x P80.6HCT-ND
+4x 350-1751-ND
+
+FARNELL RAN OUT OF MY SWITCHING MOSFET, NEED TO FIND ALTERNATIVE
+</pre>
+
+== SION Software ==
+
+=== Linux OS ===
+notes about installing and modifying the OS itself
+
+''Main Article: [[2010 SION Linux Config]]''
+
+* <s>The OS used is [http://wiki.gumstix.org/index.php?title=Installing_Ubuntu_10.04_on_Gumstix_Overo Ubuntu Linux Maverick Meerkat], since it's debian based (easier to work with) but has easy tools to create rootfs (rootstock). </s>
+** Doesnt work straight out of the box, so I'm using this for now: [http://www.sakoman.com/feeds/omap3/glibc/images/overo/201011150741/]
+
+* The SD card is formatted like [http://www.gumstix.org/create-a-bootable-microsd-card.html], but with an additional step to increase the frequency of automated fs check. This is to prevent corruption.
+ sudo tune2fs -c 18 -i 90 /dev/sdx2
+
+* Pinout is pulled low by default (or at least it is on whatever's connected to reset mosfet of the LPC). To modify this, ....
+
+Some links:
+
+List of possible Linux distros:
+* [http://www.emdebian.org/release/lenny/grip/ Emdebian]
+** Can be installed with either [http://www.emdebian.org/release/squeeze.html Debootstrap] or [http://wiki.debian.org/Multistrap Multistrap].
+** Not a straightforward install, need to do some magic to get going.
+** Does not include kernel & bootloader, for starters.
+* OpenEmbedded - The original overo OS.
+** [http://wiki.gumstix.org/index.php?title=Kernel_Reconfiguration Gumstix kernel mods]
+** uses a POS build system called Bitbake, where each command take 30 mins to run.
+** Avoid like plague.
+* [https://wiki.ubuntu.com/ARM/RootfsFromScratch Ubuntu]
+** [http://elinux.org/BeagleBoard#Source Widely used in user-friendly embedded OS like Beagleboard]
+** Image stopped booting at some point, wtf man
+** Has a ton of cruft installed like ureadahead.
+* [https://wiki.linaro.org/Boards/Overo/Setup Linaro]
+** Testing now, it autoformats my SD card, I am impressed so far.
+** Based on Angstrom Distribution
+** Cannot recompile from source? and no power management under /sys/ either.
+** THIS MAKE MY GUMSTIX UNBOOTABLE ON MY PCB, WHY
+
+* Working install guide( sort of): [http://vincent.stehle.free.fr/omap/]
+
+
+* Linux real time patch set
+
+=== SION sender ===
+notes about sion software that runs on the OS
+
+* SQLite should be compiled directly from the sqlite amalgamation file, instead of linking with precompiled things. This makes it real easy to crosscompile.
+* Bind variables should be used to improve performance
+
+=== SION supervisor ===
+Supervisor program that runs alongside sion sender, doing these:
+- Monitoring for voltage drop / shutdown conditions and sending SIGINT if so.
+- sending PING to control car and blinking an LED if it does that.
+- Deleting old databases as sdcard grows full.
+
+=== Datatypes ===
+Both ARM Cortex A8 and SQLite stores numbers in 8 byte at their max (regardless whether they're ints or floats); this means we can't cover the entire range of 64 bit unix time in them. However, simply using uint64_t is enough for us since we don't need to log data until the heat death of the universe (which unfortunately means you can't take SION to the restaurant at the end of the universe, but oh well.) This also avoids using floating point numbers and their encoding brouhaha which will need to be taken care of since the data is sent between two different architectures (ARM to x86)
+
+=== Control Car ===
+''Main Article: [[Control Car Telemetry]]''
+
+=== SPI Bus ===
+Comms protocol between LPC1768 and Gumstix.
+
+* CPOL = CPHA = 0. Clock normally low, sample data on leading edge.
+* 16 Bit Data Frame
+
+
+=== Cortex-M3 ===
+notes about the CAN interface on the LPC1768
+
+* Interrupts: [http://embeddedfreak.wordpress.com/2009/08/07/cortex-m3-interrupt-vector-table/] [http://embeddedfreak.wordpress.com/2009/08/10/cortex-m3-systick-peripheral/]
+Specifically, [http://embeddedfreak.wordpress.com/2009/08/16/lpc1766-not-so-reliable-uart0-loopback/ how to handle interrupts in LPC1768]. Not sure if LPC specific or standard across CM3.
+ The startup code said that UART0 interrupt handler is named as 
+ UART0_IRQHandler, and it’s temporarily linked to Default_Handler(). 
+ It means that if you declare a function named: ‘void UART0_IRQHandler(void)’,
+ the temporary link to Default_Handler() will be overridden. That’s how you’re
+ handling the interrupt, by creating the same function name as in the startup file.
+
+
+=== Installing the toolchain ===
+* This method uses the Sourcery G++ 4.4-180 for ARM EABI, released on 23 April 2010. 
+** Download the Linux installer here: http://www.codesourcery.com/sgpp/lite/arm/portal/release1294
+** The installer requires the bash shell, not dash. It will tell you what to do, so don't worry.
+** It pop up a GUI by default. If you prefer the CLI version, use this command: /path/to/installer.bin -i console 
+* You need OpenOCD installed. The default stuff inside the sion package assumes it was installed under /local, change as necessary. Install from source, not apt.
+** You need libftdi installed for this: sudo apt-get install libftdi-dev
+* Linux toolchain is in [[2010 SION Linux Config]]
+
+=== Modification to CMSIS ===
+SION uses CMSIS as a middleware layer. This makes my life easier, as long as I can change some things. I am using CMSIS version 2.0 which is [http://ics.nxp.com/support/documents/microcontrollers/zip/lpc17xx.cmsis.driver.library.zip provided by NXP on Jan 28, 2011].
+
+The only modifications made was to change some #include "lpc17xx.h" to "LPC17xx.h". Linux is case sensitive, Windows is not. I suspect CMSIS was developed under Windows. Blame Microsoft for this one.
+
+All other files that are changed substantially are taken out and are specifically mentioned by in the makefile.
+
+=== List of code used, for copyright brouhaha ===
+
+* Standard definitions (e.g. uint16_t) from Sourcery G++ Lite 2010.09-51 EABI [http://www.codesourcery.com/sgpp/lite/arm/portal/release1592]
+* CMSIS with LPC1768 standard header files, from NXP. Version 2.0, 28 Jan 2011 [http://ics.nxp.com/support/documents/microcontrollers/zip/lpc17xx.cmsis.driver.library.zip][http://ics.nxp.com/support/documents/microcontrollers/?scope=LPC1768]
+* Parts of Scandal CAN library, sunswift internal.
+* Simple sprintf and itoa implementation,(c) Freddie Chopin [http://www.freddiechopin.info/index.php/en/download/category/9-various]
+* OpenBSD strlen.c implementation, [http://www.openbsd.org/cgi-bin/cvsweb/src/lib/libc/string/strlen.c?rev=1.7;content-type=text%2Fplain]
+
+== ???? Server ==
+* Sockets API?
+* Look into using postgres instead of sqlite? for multi user capability. But is very complex, filetypes not backwards compatible, and loses ability to do strategy directly from a copy of sion logs. (eg remove sdcard, plug into pc)
+
+== Testing Log ==
+
+=== Land Speed Record ===
+c / p from progress report that weekend
+
+Nicta
+* Did some more work on the PCB and BOM.
+* The old pleb finally dies. It does not accept any Ethernet
+connection and plugging a serial cable shows some filesystem error and
+unable to open initial console for unknown reason. I don't know of any
+way to access / modify the system inside, so it's pulled out.
+* Sunswift has a pair of Xbees which was meant to be used as a
+temporary backup telemetry before my project is ready. However, it has
+an issue with a lot of packet corruption for unknown reasons, possibly
+because they're the newer series 2 xbees which has a more complicated
+system and no serial passthrough mode, like the older series 1.
+* Last Sunday I realised that I can use the canusb devices (which we
+use to interface the car to a PC) and the gumstix board to create a
+temporary CAN - wireless bridge. The software in the PLEB is still
+available in the sunswift repositories, so it can be used by modifying
+the CAN interface code. Managed to get it working the on the night
+before I went to nowra.
+
+Lessons learned along the way:
+* Bitbake (default build system for openembedded) does not suit my
+needs for developing software. It feels to me like using a toolchain
+that output debian packages as opposed to binary files. For this event
+I'm using the crosscompiler from codesourcery which I found back then
+when I was searching for cortex M3 compilers. It works flawlessly so
+far. I heard SeL4 is moving away from bitbake as well, so I'd have to
+look into what they're using at some point.
+* Serial communication has much more detail than I expected; Python
+has done a good job of masking them from me until now.
+* Experienced first hand the convenience of having crosscompilers,
+standard libraries, and operating systems. I prototyped the software
+on the desktop and then crosscompiled the working product with no
+trouble whatsoever. It's also convenient that I'm able to upload new
+binaries through ethernet / wireless.
+
+HMAS Albatross, Nowra
+* The wireless bridge was tied into a cardboard box, then wrapped with
+alumunium foil (not grounded due to fear of electrical issue), in case
+it'd give some EMI shielding like a faraday cage.
+* The bridge works fine for the most part of the first day and on the
+entire day of the record run, which was a bit surprising for something
+that has only just working on the bench the day before.
+* I confirmed that the drop in telemetry data does not occur when we
+run under limited power ( ~=1kW motor power ), nor did we lose the
+wireless connection. There was no instance when ping is working
+without also having telemetry working. Since the bridge runs with
+identical software to the PLEB except the CAN interface, I'm more
+convinced that the problem in the PLEB is on the CAN interface side as
+opposed to wireless interference. However there was no time to
+validate this claim under higher motor power at the base.
+* There's a few instances where the gumstix does not connect to the
+Access Point after bootup. I think this might be two problems in one:
+** One with the AP itself as it still occurs when the car wasn't
+running / low EMI, or trying to connect to the AP using someone's
+laptop.  There was no time to swap access point, though it should be
+tried next time similar problems happen.
+** Another with the way wireless is set up at the moment on the
+gumstix, since in some cases turning it off and on again fixes the
+wireless issue without touching the access point.
+* Logging was not implemented due to time constraints, I'm also afraid
+that having logging without proper power backup means relying on the
+ext3 journalling to prevent filesystem corruption when the car is
+turned off, which is not ideal.
+* There's a lot of what seems like random data (eg spikes in the
+graph), which probably comes from noise affecting the data cables
+inside. Since we have mostly good data, I'm not too worried about it
+for now.
+* We broke the land speed record at 88 km/h average. The peak speed
+was 95 km/h, we was limited by the runway length and lack of sunshine.
+
+Next Week
+* Proofread PCB and Bill of Materials.
+* Since there's no training events planned for a while, I can't check
+if the wireless connection drops when the motor is outputting higher
+amount of power. So I'm thinking of working on the software side for
+now, adding things such as data logging. This way, if wireless
+connection drops during future events, there will be onboard logs that
+might be able to give a clue on the cause. With the wonders of
+operating systems and standard libraries I should be able to prototype
+the entire software on two desktop computers (minus the CAN interface
+and system settings, such as boot sequence, wireless settings,
+automatic shutdown, etc)
+
+=== Power measurement - NICTA, 24 may 2011 ===
+
+Laptop ping flooding SION through the WAP - flawed
+* WAP: 0.310 A, 12.00 V
+* SION+CANUSB: 0.272 A 12.00 V
+
+No load
+* CANUSB: 0.025A , 12.00V
+
+SION ping flooding WAP
+* SION + CANUSB: 0.264A, 12.00V
+
+PLEB, max power during bootup
+* PLEB: 100mA (assumed to be trying to read flash)
+
+
+Efficiency analysis, SION ping flooding WAP
+* 0.256A, 11.57V (2.96W)
+* TDK-Lambda 62% efficient
+* 4.83V, 0.0077/0.02 A, (1.859W)
+* ADS1621  81% efficient
+* 3.325 V, 0.0091/0.02 A (1.512 W)
+
+== Temp ==
+=== Programming the LPC11Cxx series using SWD ===
+Latest verdict: 
+* Looks like you _can_ program from CLI on linux, though I dont see explicit explanations...
+* Strongest clue is [http://knowledgebase.nxp.trimm.net/showpost.php?s=9740c333574b0963ce80ff44e25a0efe&p=5703&postcount=38 here].
+* [http://support.code-red-tech.com/CodeRedWiki/CommandLineFlashProgramming official docs]
+
+Next step:
+* Install lpcxpresso, test it out.
+* [http://www.onarm.com/cmsis/download/10/version-2-0-of-the-cortex-microcontroller-software-interface-standard-cmsis/] cmsis for cortex m0 is coming out feb 2011. Looks like it'll be late.
