@@ -1,6 +1,7 @@
 # SION - Sunswift IVy Observer Node
 
 The original documentation for SION is in 4 mediawiki pages, which is now stored in the /docs directory. They are split as:
+
 * sion.wiki - General overview of the project
 * siondev1.wiki - R&D research notes, first part
 * siondev2.wiki - R&D research notes, second part
